@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Controlo · Carteira</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0A0E1A;
+    --panel: #121828;
+    --panel-alt: #182036;
+    --border: #232C42;
+    --text: #EAEEF6;
+    --muted: #8B96AC;
+    --pos: #2FD98A;
+    --neg: #FF6B6B;
+    --gold: #C9A24B;
+    --blue: #4EA8DE;
+    --purple: #8E6FD1;
+    --pink: #E85D9E;
+    --orange: #E8734B;
+    --btc: #F7931A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .mono { font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; }
+  .display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+  #root { max-width: 1400px; margin: 0 auto; border-radius: 18px; overflow: hidden; }
+
+  /* ---------- Ticker tape ---------- */
+  .marquee-wrap {
+    border-bottom: 1px solid var(--border); background: #080B14; overflow: hidden;
+    white-space: nowrap; position: relative; padding: 9px 0;
+  }
+  .marquee-track { display: inline-flex; animation: scroll 42s linear infinite; }
+  .marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .tick { display: inline-flex; align-items: baseline; gap: 6px; padding: 0 18px; font-size: 12.5px; }
+  .tick + .tick { border-left: 1px solid var(--border); }
+
+  /* ---------- Header ---------- */
+  .header { padding: 22px 26px 18px 26px; border-bottom: 1px solid var(--border); }
+  .eyebrow { color: var(--gold); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+  .title { font-size: 26px; font-weight: 600; margin-top: 4px; letter-spacing: -0.01em; }
+  .subtitle { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+  /* ---------- Summary strip ---------- */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  @media (max-width: 780px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+  .summary-cell { background: var(--panel); padding: 18px 22px; }
+  .summary-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .summary-value { font-size: 22px; font-weight: 600; }
+  .summary-sub { font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+  /* ---------- Body layout ---------- */
+  .body { padding: 24px 26px 30px 26px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .body { grid-template-columns: 1fr; } }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .card-hint { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+  .legend { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .legend-row { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: background .15s ease; }
+  .legend-row:hover, .legend-row.active { background: var(--panel-alt); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filter-btn { font-size: 11px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-alt); color: var(--muted); cursor: pointer; font-family: inherit; }
+  .filter-btn.active { border-color: var(--gold); color: var(--text); }
+
+  .donut-wrap { display: flex; align-items: center; gap: 12px; }
+  .donut { width: 130px; height: 130px; border-radius: 50%; flex-shrink: 0; position: relative; }
+  .donut::after { content: ''; position: absolute; inset: 19%; background: var(--panel); border-radius: 50%; }
+
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th {
+    text-align: right; font-weight: 500; color: var(--muted); font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: .06em; padding: 8px 10px; cursor: pointer; user-select: none; white-space: nowrap; border-bottom: 1px solid var(--border);
+  }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl td { text-align: right; padding: 9px 10px; border-bottom: 1px solid #1A2132; white-space: nowrap; }
+  .tbl td:first-child { white-space: normal; }
+  .tbl tbody tr:hover { background: var(--panel-alt); }
+
+  .editable { background: transparent; border: 1px dashed transparent; border-radius: 5px; padding: 2px 6px; cursor: text; }
+  .editable:hover { border-color: var(--muted); }
+  .num-input {
+    background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); border-radius: 6px;
+    padding: 3px 6px; font-family: inherit; font-size: 12px; text-align: right;
+  }
+  .num-input:focus { border-color: var(--gold); outline: none; }
+
+  select.sel { background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 11.5px; border-radius: 6px; padding: 3px 5px; cursor: pointer; }
+  select.sel:hover { border-color: var(--gold); }
+
+  .signal-chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 9px 3px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; cursor: default; }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .btn:hover { border-color: var(--gold); }
+  .btn-xs { padding: 3px 7px; font-size: 10px; }
+  .save-flash { color: var(--pos); font-size: 11.5px; display: flex; align-items: center; gap: 4px; }
+
+  .footnote { font-size: 11px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
+  .formula-box { margin-top: 18px; padding: 14px 16px; background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px; font-size: 11.5px; color: var(--muted); line-height: 1.7; }
+  .formula-box b { color: var(--text); }
+
+  .proj-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 4px; }
+  @media (max-width: 780px) { .proj-inputs { grid-template-columns: 1fr; } }
+  .proj-input-group { background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .proj-input-label { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; }
+  .proj-input-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); }
+  .proj-input-hint { margin-top: 8px; font-size: 10.5px; color: var(--muted); }
+  .proj-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 18px; }
+  @media (max-width: 1000px) { .proj-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .proj-summary { grid-template-columns: repeat(2, 1fr); } }
+  .proj-summary-cell { background: var(--panel-alt); padding: 12px 14px; }
+
+  .full-width-section { padding: 0 26px 30px 26px; }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div id="lock-screen" style="position:fixed;inset:0;background:#0A0E1A;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:Inter,sans-serif">
+  <div style="background:#121828;border:1px solid #232C42;border-radius:14px;padding:32px;width:300px;text-align:center">
+    <div style="color:#C9A24B;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px">Portefólio Privado</div>
+    <input id="login-email" type="email" placeholder="Email" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #232C42;background:#182036;color:#EAEEF6;font-size:14px;margin-bottom:8px">
+    <input id="login-pw" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #232C42;background:#182036;color:#EAEEF6;font-size:14px;margin-bottom:10px" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" style="width:100%;padding:10px;border-radius:8px;border:none;background:#C9A24B;color:#0A0E1A;font-weight:600;cursor:pointer;margin-bottom:8px">Entrar</button>
+    <button onclick="doSignup()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #232C42;background:transparent;color:#8B96AC;font-size:12px;cursor:pointer">Criar conta (1ª vez)</button>
+    <div id="login-error" style="color:#FF6B6B;font-size:11px;margin-top:10px;display:none"></div>
+    <div id="login-status" style="color:#8B96AC;font-size:11px;margin-top:10px">A ligar ao Firebase...</div>
+  </div>
+</div>
+<script>
+  // -------------------------------------------------------------------------
+  // CONFIGURAÇÃO FIREBASE — substitui pelos valores do teu projeto
+  // (Consola Firebase → Definições do projeto → as tuas apps → SDK setup)
+  // -------------------------------------------------------------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyBp5kxk4MIxdL_qytOWp89Ev1BgwoZ-4oU",
+    authDomain: "portefolio-9894a.firebaseapp.com",
+    projectId: "portefolio-9894a",
+    storageBucket: "portefolio-9894a.firebasestorage.app",
+    messagingSenderId: "591999517120",
+    appId: "1:591999517120:web:026bbc867b6074f6650825",
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbAuth = firebase.auth();
+  const fbDb = firebase.firestore();
+  let currentUser = null;
+
+  function showLoginError(msg) {
+    const el = document.getElementById("login-error");
+    el.textContent = msg; el.style.display = "block";
+  }
+  function doLogin() {
+    const email = document.getElementById("login-email").value;
+    const pw = document.getElementById("login-pw").value;
+    fbAuth.signInWithEmailAndPassword(email, pw).catch((err) => showLoginError(traduzErro(err.code)));
+  }
+  function doSignup() {
+    const email = document.getElementById("login-email").value;
+    const pw = document.getElementById("login-pw").value;
+    if (pw.length < 6) { showLoginError("A password precisa de pelo menos 6 caracteres."); return; }
+    fbAuth.createUserWithEmailAndPassword(email, pw).catch((err) => showLoginError(traduzErro(err.code)));
+  }
+  function traduzErro(code) {
+    const map = {
+      "auth/invalid-email": "Email inválido.",
+      "auth/user-not-found": "Conta não encontrada — usa 'Criar conta'.",
+      "auth/wrong-password": "Password errada.",
+      "auth/email-already-in-use": "Já existe uma conta com este email — usa 'Entrar'.",
+      "auth/weak-password": "Password demasiado fraca (mínimo 6 caracteres).",
+      "auth/invalid-credential": "Email ou password incorretos.",
+    };
+    return map[code] || "Erro: " + code;
+  }
+
+  fbAuth.onAuthStateChanged((user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("lock-screen").style.display = "none";
+      loadFromFirestore();
+    } else {
+      currentUser = null;
+      document.getElementById("login-status").textContent = "";
+    }
+  });
+</script>
+
+<div id="root"></div>
+
+<script>
+// =============================================================================
+// DATA
+// =============================================================================
+const SEED = [
+  { id: "VIRT",  symbol: "VIRT",        name: "Virtu Financial, Inc.",                     category: "Ações", shares: 2,             cost: 122.78,  value: 118.04, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "BYRN",  symbol: "BYRN",        name: "Byrna Technologies Inc.",                   category: "Ações", shares: 71,            cost: 391.61,  value: 328.02, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "BSX",   symbol: "BSX",         name: "Boston Scientific Corporation",             category: "Ações", shares: 3,             cost: 142.78,  value: 143.22, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "CDNS",  symbol: "CDNS",        name: "Cadence Design Systems, Inc.",              category: "Ações", shares: 0.4733,        cost: 151.37,  value: 159.39, div: 0,      dailyPct: 1.80, dailyAmt: 2.88,  realizedPct: null, realizedAmt: null },
+  { id: "ETOR",  symbol: "ETOR",        name: "eToro Group Ltd.",                          category: "Ações", shares: 2.9781,        cost: 119.26,  value: 108.19, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "IONQ",  symbol: "IONQ",        name: "IonQ, Inc.",                                category: "Ações", shares: 3,             cost: 146.50,  value: 121.08, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "NVDA",  symbol: "NVDA",        name: "NVIDIA Corporation",                        category: "Ações", shares: 0.683,         cost: 139.39,  value: 149.82, div: 0,      dailyPct: 0.74, dailyAmt: 0.96,  realizedPct: null, realizedAmt: null },
+  { id: "MA",    symbol: "MA",          name: "Mastercard Incorporated",                   category: "Ações", shares: 0.1753,        cost: 94.08,   value: 99.97,  div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "FVRR",  symbol: "FVRR",        name: "Fiverr International Ltd.",                 category: "Ações", shares: 11,            cost: 113.41,  value: 102.96, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "FLUXO", symbol: "FLUXO.AS",    name: "Flow Traders N.V.",                         category: "Ações", shares: 6,             cost: 153.92,  value: 159.84, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "ENX",   symbol: "ENX.PA",      name: "Euronext N.V.",                             category: "Ações", shares: 1,             cost: 126.30,  value: 161.1, div: 3.18,   dailyPct: 0, dailyAmt: 0,  realizedPct: 2.52, realizedAmt: 3.18 },
+  { id: "ALFEN", symbol: "ALFEN.AS",    name: "Alfen N.V.",                                category: "Ações", shares: 4,             cost: 53.88,   value: 50.72,  div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "NVG",   symbol: "NVG.LS",      name: "The Navigator Company, S.A.",               category: "Ações", shares: 29,            cost: 99.24,   value: 94.25,  div: 3.2619, dailyPct: 0, dailyAmt: 0,  realizedPct: 3.76, realizedAmt: 6.0619 },
+  { id: "ISLN",  symbol: "ISLN.L",      name: "iShares Physical Silver ETC",               category: "ETC",   shares: 3.9358,        cost: 238.86,  value: 233.83, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "EGLN",  symbol: "EGLN.L",      name: "iShares Physical Gold ETC",                 category: "ETC",   shares: 5.2906,        cost: 440.03,  value: 378.28, div: 0,      dailyPct: -2.31, dailyAmt: -8.64,  realizedPct: null, realizedAmt: null },
+  { id: "SXR8A", symbol: "SXR8.DE",     name: "iShares Core S&P 500 UCITS ETF",            category: "ETF",   shares: 0.3351,        cost: 230.55,  value: 242.12, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "IS0E",  symbol: "IS0E.DE",     name: "iShares Gold Producers UCITS ETF",          category: "ETF",   shares: 12.4177,       cost: 514.39,  value: 416.74, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "SXR8B", symbol: "SXR8.DE (2)", name: "iShares Core S&P 500 UCITS ETF",            category: "ETF",   shares: 0.3,           cost: 206.38,  value: 216.76, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "EUNL",  symbol: "EUNL.DE",     name: "iShares Core MSCI World UCITS ETF",         category: "ETF",   shares: 1,             cost: 84.33,   value: 128.13, div: 0,      dailyPct: 0.20, dailyAmt: 0.25,  realizedPct: null, realizedAmt: null },
+  { id: "EUNLF", symbol: "EUNL.DE",     name: "iShares Core MSCI World UCITS ETF (conta filhas)", category: "ETF", shares: 5.2415, cost: 590.02, value: 671.59, div: 0,      dailyPct: 0.20, dailyAmt: 1.32,  realizedPct: null, realizedAmt: null },
+  { id: "VWCE",  symbol: "VWCE.DE",     name: "Vanguard FTSE All-World UCITS ETF",         category: "ETF",   shares: 1.6225,        cost: 248.24,  value: 272.58, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "LSMC",  symbol: "LSMC.DE",     name: "Amundi MSCI Semiconductors UCITS ETF (Acc)",category: "ETF",   shares: 2,             cost: 157.66,  value: 221.4, div: 0,      dailyPct: 0,     dailyAmt: 0,      realizedPct: null, realizedAmt: null },
+  { id: "PPR",   symbol: "5868986",     name: "Alves Ribeiro PPR/OICVM",                   category: "PPR",   shares: 304.0769,      cost: 6107.20, value: 6489.0,div: 0,      dailyPct: 0,     dailyAmt: 0,      realizedPct: null, realizedAmt: null },
+  { id: "BTC",   symbol: "BTC",         name: "Bitcoin",                                   category: "Cripto",shares: 0.0218358565,  cost: 1200.00, value: 1216.94,div: 0,      dailyPct: 0,     dailyAmt: 0,      realizedPct: null, realizedAmt: null },
+];
+
+const BTC_TRANSACTIONS = [
+  { date: "2026-07-04 02:40:53", amount: 0.0004578344, type: "Airdrop",   balance: 0.0218358565, desc: "Bônus de AirDrop" },
+  { date: "2026-07-04 02:11:13", amount: 0.0001825921, type: "Airdrop",   balance: 0.0213780221, desc: "Bônus de AirDrop" },
+  { date: "2026-07-01 12:04:16", amount: 0.00237958,   type: "Depositar", balance: 0.02119543,   desc: "Depositar" },
+  { date: "2026-06-30 10:16:20", amount: 0.01078615,   type: "Depositar", balance: 0.01881585,   desc: "Depositar" },
+  { date: "2026-06-30 10:15:02", amount: 0.0080297,    type: "Depositar", balance: 0.0080297,    desc: "Depositar" },
+];
+const BTC_TOTAL_QTY = 0.0218358565;
+const BTC_FALLBACK_PRICE_EUR = 56300;
+
+const CATEGORY_META = {
+  "Ações":  { label: "Ações individuais", color: "#4EA8DE" },
+  "ETF":    { label: "ETFs de Ações",     color: "#2FD98A" },
+  "ETC":    { label: "ETC (Matérias-primas)", color: "#C9A24B" },
+  "PPR":    { label: "PPR",               color: "#8E6FD1" },
+  "Cripto": { label: "Criptoativos",      color: "#F7931A" },
+};
+const BASE_IDS = new Set(["PPR", "EUNL", "EUNLF", "VWCE", "SXR8A", "SXR8B"]);
+const DAUGHTER_IDS = new Set(["ISLN", "EGLN", "SXR8A", "IS0E", "EUNLF"]);
+const ROLE_META = { "Base": { color: "#4EA8DE", desc: "diversificado, baixa volatilidade" }, "Satélite": { color: "#E8734B", desc: "concentrado, alto potencial/risco" } };
+const OWNER_META = { "Eu": { color: "#4EA8DE", desc: "carteira própria" }, "Filha": { color: "#E85D9E", desc: "investimento para as filhas" } };
+const CONVICTION_SCORE = { Alta: 2, Média: 0, Baixa: -2 };
+const CONVICTION_OPTIONS = ["Alta", "Média", "Baixa"];
+
+const SEED_FULL = SEED.map(p => ({
+  ...p,
+  conviction: "Média",
+  role: BASE_IDS.has(p.id) ? "Base" : "Satélite",
+  owner: DAUGHTER_IDS.has(p.id) ? "Filha" : "Eu",
+}));
+
+const MUTABLE_FIELDS = ["value","conviction","role","owner","dailyPct","dailyAmt"];
+const LS_OVERRIDES = "pd_overrides_v1";
+
+// =============================================================================
+// ATIVIDADE DE INVESTIMENTO — dados dos extratos da corretora (2026) e PPR
+// =============================================================================
+const ACTIVITY_MONTHLY = [
+  { month: "Jan", euDep: 200, euBuy: 226.72, filhaDep: 3000, filhaBuy: 1404.97, usdBuy: 6.05, pprDep: 100 },
+  { month: "Fev", euDep: 500, euBuy: 374.49, filhaDep: 0,    filhaBuy: 209.33,  usdBuy: 6.33, pprDep: 100 },
+  { month: "Mar", euDep: 0,   euBuy: 0,      filhaDep: 0,    filhaBuy: 0,       usdBuy: 0,    pprDep: 100 },
+  { month: "Abr", euDep: 0,   euBuy: 0,      filhaDep: 0,    filhaBuy: 0,       usdBuy: 0,    pprDep: 100 },
+  { month: "Mai", euDep: 500, euBuy: 259.58, filhaDep: 0,    filhaBuy: 99.98,   usdBuy: 175.60, pprDep: 100 },
+  { month: "Jun", euDep: 600, euBuy: 179.26, filhaDep: 200,  filhaBuy: 194.56,  usdBuy: 485.98, pprDep: 100 },
+  { month: "Jul", euDep: 300, euBuy: 73.87,  filhaDep: 402,  filhaBuy: 104.96,  usdBuy: 484.17, pprDep: 100 },
+];
+
+const ACTIVITY_ASSET_PL = [{ asset: "NOS.PT (ações)", pl: -5.38, n: 2, color: "#4EA8DE" }];
+
+const ACTIVITY_CLOSED = [
+  { titular: "Eu", instrumento: "Zon Multimedia", categoria: "STOCK", dataAbertura: "2026-05-14 14:01", dataFecho: "2026-07-09 13:54", horasDetidas: 1343.89, lucroPrejuizo: -4.81 },
+  { titular: "Eu", instrumento: "Zon Multimedia", categoria: "STOCK", dataAbertura: "2026-02-24 14:17", dataFecho: "2026-07-09 13:54", horasDetidas: 3239.63, lucroPrejuizo: -0.57 },
+  { titular: "Filhas", instrumento: "Ajuste (não corresponde a investimento)", categoria: "OUTRO", dataAbertura: "2026-01-26 09:24", dataFecho: "2026-02-17 07:47", horasDetidas: null, lucroPrejuizo: -353.55 },
+];
+
+const WATCHLIST = [
+  { name: "Oracle Corporation", ticker: "ORCL", cat: "C", moeda: "USD", price: 135.91, tese: "AI/cloud em forte crescimento, mas dívida elevada (~$124,7bn), FCF negativo, rating baixado para BBB-" },
+  { name: "S&P Global", ticker: "SPGI", cat: "A", moeda: "USD", price: 431.26, tese: "Oligopólio de ratings/índices, correção após guidance conservador, spin-off da Mobility concluído" },
+  { name: "iShares MSCI India ETF", ticker: "INDA / IIND.L", cat: "A (base)", moeda: "USD/GBP", price: 48.55, tese: "Exposição dedicada à Índia; rating Morningstar neutro, momentum técnico fraco" },
+  { name: "Alphabet (Google)", ticker: "GOOGL", cat: "A", moeda: "USD", price: 342.09, tese: "Q2 2026 forte (+24% receita, Cloud +82%), mas subiu ~89% em 12 meses; capex 2026 elevado ($195-205bn) penaliza no curto prazo; risco regulatório UE" },
+  { name: "Meliá Hotels International", ticker: "MEL.MC", cat: "C", moeda: "EUR", price: 7.98, tese: "Cadeia hoteleira espanhola, rating Buy dos analistas, mas dívida líquida elevada (~€2,19bn negativos); dados de preço inconsistentes entre fontes, confirmar antes de agir" },
+  { name: "Sezzle Inc.", ticker: "SEZL", cat: "C", moeda: "USD", price: 117.46, tese: "BNPL fintech; subiu +158% até jul/2026 (máx. $195,71), caiu -34% num dia (6-7 ago) após Q2 apesar de bater receita e subir guidance — clássico \"sell the news\"; muito volátil (beta 1,52)" },
+  { name: "Digital Turbine", ticker: "APPS", cat: "B", moeda: "USD", price: 13.31, tese: "Plataforma de distribuição de apps móveis, turnaround em curso; receita +27% (Q1 FY27), a vender ativos não-core (AdColony) para simplificar; consenso Strong Buy, alvo $15,17" },
+];
+
+const YEARLY_INVESTED = [
+  { year: "2020", amount: 3374.99 },
+  { year: "2021", amount: 0 },
+  { year: "2022", amount: 0 },
+  { year: "2023", amount: 0 },
+  { year: "2024", amount: 100.00 },
+  { year: "2025", amount: 1850.00 },
+  { year: "2026", amount: 6402.00 },
+];
+const PPR_ANNUAL_RETURN = [
+  { year: "2025", pct: 5.26, from: "19,5366 (nov/24)", to: "20,5647 (dez/25)" },
+  { year: "2026 (YTD)", pct: 2.71, from: "20,5647 (dez/25)", to: "21,1223 (22/jul/26)" },
+];
+
+function fmtHoras(h) {
+  if (h == null) return "—";
+  if (h < 1) return `${Math.round(h * 60)} min`;
+  if (h < 24) return `${h.toFixed(1)} h`;
+  return `${(h / 24).toFixed(1)} dias`;
+}
+
+// =============================================================================
+// IMPORTAÇÃO DE FICHEIROS (CSV/Excel de extratos de corretora)
+// =============================================================================
+// Nomes conhecidos -> id da posição. Correspondência por substring, case-insensitive.
+// Alguns nomes (Core S&P 500, Core MSCI World) existem em duas posições (Eu/Filhas) —
+// desambiguado depois por proximidade de quantidade (Volume).
+const IMPORT_NAME_MAP = [
+  { match: "byrna", id: "BYRN" },
+  { match: "ionq", id: "IONQ" },
+  { match: "etoro", id: "ETOR" },
+  { match: "virtu", id: "VIRT" },
+  { match: "nvidia", id: "NVDA" },
+  { match: "boston", id: "BSX" },
+  { match: "mastercard", id: "MA" },
+  { match: "cadence", id: "CDNS" },
+  { match: "fiverr", id: "FVRR" },
+  { match: "gold producers", id: "IS0E" },
+  { match: "physical silver", id: "ISLN" },
+  { match: "physical gold", id: "EGLN" },
+  { match: "alfen", id: "ALFEN" },
+  { match: "navigator", id: "NVG" },
+  { match: "flow traders", id: "FLUXO" },
+  { match: "ftse all-world", id: "VWCE" },
+  { match: "euronext", id: "ENX" },
+  { match: "msci semiconductor", id: "LSMC" },
+  { match: "core s&p 500", id: "__SXR8__" },   // ambíguo, resolvido por volume
+  { match: "core msci world", id: "__EUNL__" }, // ambíguo, resolvido por volume
+];
+
+function findColIndex(headerRow, candidates) {
+  for (let i = 0; i < headerRow.length; i++) {
+    const cell = String(headerRow[i] || "").toLowerCase();
+    if (candidates.some((c) => cell.includes(c))) return i;
+  }
+  return -1;
+}
+
+function parseNumLoose(v) {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return v;
+  let s = String(v).trim().replace(/[€$%]/g, "").trim();
+  // formato europeu (1.234,56) vs formato US (1,234.56) — deteta pela posição da última vírgula/ponto
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma > lastDot) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    s = s.replace(/,/g, "");
+  }
+  const n = parseFloat(s);
+  return Number.isNaN(n) ? null : n;
+}
+
+function resolveAmbiguousId(placeholder, volume) {
+  if (placeholder === "__SXR8__") {
+    // SXR8A (Filhas) tem 0.3351; SXR8B (Eu) tem 0.3 — escolhe o mais próximo
+    return Math.abs(volume - 0.3351) < Math.abs(volume - 0.3) ? "SXR8A" : "SXR8B";
+  }
+  if (placeholder === "__EUNL__") {
+    // EUNLF (Filhas) tem 5.2415; EUNL (Eu) tem 1
+    return Math.abs(volume - 5.2415) < Math.abs(volume - 1) ? "EUNLF" : "EUNL";
+  }
+  return placeholder;
+}
+
+function handleFileImport(fileInput, mode) {
+  mode = mode || "update";
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      // tenta encontrar uma folha com cabeçalhos reconhecíveis; senão usa a primeira
+      let rows = null;
+      for (const sheetName of wb.SheetNames) {
+        const candidate = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true });
+        const flatText = candidate.slice(0, 5).map((r) => r.join(" ")).join(" ").toLowerCase();
+        if (flatText.includes("instrumento") || flatText.includes("preço atual") || flatText.includes("volume")) {
+          rows = candidate;
+          break;
+        }
+      }
+      if (!rows) rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true });
+      if (mode === "addOnly") importOnlyNewPositions(rows);
+      else importPositionsFromRows(rows);
+    } catch (err) {
+      alert("Não consegui ler este ficheiro. Confirma que é um .csv, .xlsx ou .xls válido.\n\nErro: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  fileInput.value = "";
+}
+
+// Modo "adicionar só novidades" — nunca atualiza posições já existentes.
+// Qualquer linha cujo nome já corresponda a uma posição atual é ignorada;
+// só cria posições novas para nomes que ainda não conhecemos.
+function importOnlyNewPositions(rows) {
+  let headerRowIdx = -1, headerRow = null;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const rowText = (rows[i] || []).join(" ").toLowerCase();
+    if (rowText.includes("instrumento") && (rowText.includes("valor") || rowText.includes("preço"))) {
+      headerRowIdx = i; headerRow = rows[i];
+      break;
+    }
+  }
+  if (headerRowIdx === -1) {
+    alert("Não encontrei um cabeçalho reconhecível. Verifica se exportaste a vista de posições da tua corretora.");
+    return;
+  }
+  const colName = 0;
+  const colValor = findColIndex(headerRow, ["valor"]);
+  const colVolume = findColIndex(headerRow, ["volume"]);
+  const colGanhoPct = findColIndex(headerRow, ["lucro líquido %", "lucro liquido %", "ganho"]);
+
+  let added = 0, ignoradosExistentes = 0; const criadas = [];
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row[colName]) continue;
+    const nomeOriginal = String(row[colName]);
+    const nome = nomeOriginal.toLowerCase();
+    const valor = colValor >= 0 ? parseNumLoose(row[colValor]) : null;
+    const volume = colVolume >= 0 ? parseNumLoose(row[colVolume]) : null;
+    const ganhoPct = colGanhoPct >= 0 ? parseNumLoose(row[colGanhoPct]) : null;
+    if (valor === null) continue;
+
+    const found = IMPORT_NAME_MAP.find((m) => nome.includes(m.match));
+    const jaExiste = found && state.positions.some((p) => p.id === resolveAmbiguousId(found.id, volume));
+    // também verifica por nome direto, para posições que já possam ter sido adicionadas manualmente antes
+    const jaExistePorNome = state.positions.some((p) => p.name && p.name.toLowerCase().includes(nome.split(" ")[0]));
+    if (jaExiste || jaExistePorNome) { ignoradosExistentes++; continue; }
+
+    const novoCusto = ganhoPct !== null ? valor / (1 + ganhoPct / 100) : valor;
+    const id = `custom-${Date.now()}-${added}`;
+    state.positions = [...state.positions, {
+      id, symbol: nomeOriginal, name: nomeOriginal, category: "Ações",
+      shares: volume !== null ? volume : 0, cost: novoCusto, value: valor,
+      div: 0, dailyPct: 0, dailyAmt: 0, realizedPct: null, realizedAmt: null,
+      conviction: "Média", role: "Satélite", owner: "Eu",
+    }];
+    criadas.push(nomeOriginal);
+    added++;
+  }
+  persist(); render();
+  let msg = `Adicionadas ${added} posições novas.`;
+  if (added) msg += `\n\n${criadas.join(", ")}`;
+  msg += `\n\n${ignoradosExistentes} linhas ignoradas (já existiam na carteira).`;
+  msg += `\n\nNota: as posições novas ficaram com categoria "Ações", titular "Eu" e perfil "Satélite" por omissão — revê e ajusta na tabela.`;
+  alert(msg);
+}
+
+function importPositionsFromRows(rows) {
+  // Formato 1: CSV simples gerado pelo script local (atualizar_precos.py) — id,symbol,price,dailyChangePct
+  const firstRowLower = (rows[0] || []).map((c) => String(c || "").toLowerCase());
+  if (firstRowLower.includes("id") && firstRowLower.includes("price")) {
+    const idxId = firstRowLower.indexOf("id");
+    const idxPrice = firstRowLower.indexOf("price");
+    const idxDaily = firstRowLower.indexOf("dailychangepct");
+    let updated = 0; const naoReconhecidos = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[idxId]) continue;
+      const id = String(row[idxId]).trim();
+      const price = parseNumLoose(row[idxPrice]);
+      const dailyPct = idxDaily >= 0 ? parseNumLoose(row[idxDaily]) : null;
+      const pos = state.positions.find((p) => p.id === id);
+      if (!pos || price === null) { naoReconhecidos.push(id); continue; }
+      const newValue = pos.shares * price;
+      const dailyAmt = dailyPct !== null ? newValue - newValue / (1 + dailyPct / 100) : pos.dailyAmt;
+      state.positions = state.positions.map((p) => p.id === id ? {
+        ...p, value: newValue, dailyPct: dailyPct !== null ? dailyPct : p.dailyPct, dailyAmt,
+      } : p);
+      updated++;
+    }
+    persist(); render();
+    let msg = `Importação (preços ao vivo) concluída: ${updated} posições atualizadas.`;
+    if (naoReconhecidos.length) msg += `\n\nNão reconhecidas: ${naoReconhecidos.join(", ")}`;
+    alert(msg);
+    return;
+  }
+
+  // Formato 2: exportação da corretora (Instrumento/Posição, Valor, Volume, Preço atual, Lucro líquido %)
+  // encontra a linha de cabeçalho
+  let headerRowIdx = -1, headerRow = null;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const rowText = (rows[i] || []).join(" ").toLowerCase();
+    if (rowText.includes("instrumento") && (rowText.includes("valor") || rowText.includes("preço"))) {
+      headerRowIdx = i; headerRow = rows[i];
+      break;
+    }
+  }
+  if (headerRowIdx === -1) {
+    alert("Não encontrei um cabeçalho reconhecível (esperava colunas como 'Instrumento/Posição', 'Valor', 'Volume', 'Preço atual'). Verifica se exportaste a vista de posições abertas da tua corretora.");
+    return;
+  }
+  const colName = 0; // primeira coluna é sempre o nome do instrumento neste formato
+  const colValor = findColIndex(headerRow, ["valor"]);
+  const colVolume = findColIndex(headerRow, ["volume"]);
+  const colPrecoAtual = findColIndex(headerRow, ["preço atual", "preco atual"]);
+  const colGanhoPct = findColIndex(headerRow, ["lucro líquido %", "lucro liquido %", "ganho"]);
+
+  let updated = 0; const naoReconhecidos = [];
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row[colName]) continue;
+    const nome = String(row[colName]).toLowerCase();
+    const volume = colVolume >= 0 ? parseNumLoose(row[colVolume]) : null;
+    const valor = colValor >= 0 ? parseNumLoose(row[colValor]) : null;
+    const ganhoPct = colGanhoPct >= 0 ? parseNumLoose(row[colGanhoPct]) : null;
+    if (valor === null) continue;
+
+    const found = IMPORT_NAME_MAP.find((m) => nome.includes(m.match));
+    if (!found) { naoReconhecidos.push(row[colName]); continue; }
+    const id = resolveAmbiguousId(found.id, volume);
+    const pos = state.positions.find((p) => p.id === id);
+    if (!pos) { naoReconhecidos.push(row[colName]); continue; }
+
+    const novoCusto = ganhoPct !== null ? valor / (1 + ganhoPct / 100) : pos.cost;
+    state.positions = state.positions.map((p) => p.id === id ? {
+      ...p,
+      value: valor,
+      cost: novoCusto,
+      shares: volume !== null ? volume : p.shares,
+    } : p);
+    updated++;
+  }
+  persist();
+  render();
+  let msg = `Importação concluída: ${updated} posições atualizadas.`;
+  if (naoReconhecidos.length) msg += `\n\nNão reconhecidas (verifica manualmente): ${naoReconhecidos.join(", ")}`;
+  alert(msg);
+}
+
+async function refreshBtcPriceManually() {
+  const btn = document.getElementById("btc-refresh-btn");
+  if (btn) btn.textContent = "A atualizar...";
+  await fetchBtcPrice();
+  if (btn) btn.textContent = "↻ Atualizar BTC";
+}
+
+
+let state = {
+  positions: SEED_FULL.map(p => ({...p})),
+  sortKey: "value", sortDir: "desc",
+  activeCategory: null, activeOwner: null,
+  editingId: null,
+  contributions: { ppr: 116.67, filha: 100, eu: 100 },
+  assumedRates: { ppr: 4, filha: 7, eu: 7 },
+  activitySortKey: "dataFecho", activitySortDir: "desc", activityFilterTitular: null,
+};
+
+function loadPersisted() {
+  // agora feito por loadFromFirestore(), chamado depois do login (ver onAuthStateChanged)
+}
+
+let firestoreSaveTimer = null;
+function persist() {
+  flashSave();
+  // grava com um pequeno atraso (debounce) para não sobrecarregar o Firestore com cada tecla
+  clearTimeout(firestoreSaveTimer);
+  firestoreSaveTimer = setTimeout(saveToFirestore, 600);
+}
+
+function saveToFirestore() {
+  if (!currentUser) return;
+  const overrides = {};
+  state.positions.forEach(p => {
+    const seed = SEED_FULL.find(s => s.id === p.id);
+    if (!seed) { overrides[p.id] = p; return; } // posições novas (custom-...) guardam-se inteiras
+    const diff = {}; let changed = false;
+    MUTABLE_FIELDS.forEach(f => { if (seed[f] !== p[f]) { diff[f] = p[f]; changed = true; } });
+    if (changed) overrides[p.id] = diff;
+  });
+  fbDb.collection("portfolios").doc(currentUser.uid).set({
+    overrides,
+    customPositions: state.positions.filter(p => p.id.startsWith("custom-")),
+    contributions: state.contributions,
+    assumedRates: state.assumedRates,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true }).catch((err) => console.error("Erro ao gravar no Firestore:", err));
+}
+
+async function loadFromFirestore() {
+  if (!currentUser) return;
+  document.getElementById("login-status").textContent = "";
+  try {
+    const doc = await fbDb.collection("portfolios").doc(currentUser.uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      const ov = data.overrides || {};
+      state.positions = state.positions.map(p => ov[p.id] ? { ...p, ...ov[p.id] } : p);
+      if (data.customPositions) state.positions = [...state.positions, ...data.customPositions];
+      if (data.contributions) state.contributions = data.contributions;
+      if (data.assumedRates) state.assumedRates = data.assumedRates;
+    }
+  } catch (e) {
+    console.error("Erro ao carregar do Firestore:", e);
+  }
+  render();
+}
+
+function flashSave() {
+  const el = document.getElementById("save-flash");
+  if (!el) return;
+  el.style.display = "inline-flex";
+  clearTimeout(window.__flashTimer);
+  window.__flashTimer = setTimeout(() => { el.style.display = "none"; }, 1200);
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+function fmtEUR(n, signDisplay) {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  return n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: signDisplay || "auto" });
+}
+function fmtPct(n) {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}%`;
+}
+function pctSafe(value, cost) {
+  if (!cost || cost === 0) return 0;
+  return ((value - cost) / cost) * 100;
+}
+function isPos(n) { return n >= 0; }
+
+function computeSignal(gainPct, weightPct, conviction) {
+  let score = 0; const reasons = [];
+  if (gainPct >= 15) { score += 2; reasons.push("ganho > 15%"); }
+  else if (gainPct >= 0) { score += 1; reasons.push("ganho positivo"); }
+  else if (gainPct >= -15) { score -= 1; reasons.push("perda até 15%"); }
+  else { score -= 2; reasons.push("perda > 15%"); }
+  score += CONVICTION_SCORE[conviction] ?? 0;
+  reasons.push(`convicção ${conviction.toLowerCase()}`);
+  if (weightPct >= 8) { score -= 1; reasons.push(`posição concentrada (${weightPct.toFixed(1)}% da carteira)`); }
+  if (gainPct <= -15 && conviction === "Baixa") return { label: "Rever / Vender", color: "#FF6B6B", reasons };
+  if (score >= 2) return { label: "Reforçar", color: "#2FD98A", reasons };
+  if (score <= -2) return { label: "Rever / Vender", color: "#FF6B6B", reasons };
+  return { label: "Manter", color: "#E8B84B", reasons };
+}
+
+function futureValue(pv, pmt, annualRatePct, months) {
+  const r = annualRatePct / 100 / 12;
+  if (Math.abs(r) < 1e-9) return pv + pmt * months;
+  return pv * Math.pow(1 + r, months) + pmt * ((Math.pow(1 + r, months) - 1) / r);
+}
+
+// =============================================================================
+// DERIVED DATA
+// =============================================================================
+function computeTotals() {
+  const p = state.positions;
+  const cost = p.reduce((s, x) => s + x.cost, 0);
+  const value = p.reduce((s, x) => s + x.value, 0);
+  const div = p.reduce((s, x) => s + (x.div || 0), 0);
+  const dailyAmt = p.reduce((s, x) => s + (x.dailyAmt || 0), 0);
+  const gainAmt = value - cost;
+  const gainPct = pctSafe(value, cost);
+  return { cost, value, div, dailyAmt, gainAmt, gainPct };
+}
+
+function computeByKey(key, metaLookup) {
+  const map = {};
+  state.positions.forEach(p => {
+    const k = p[key];
+    map[k] = map[k] || { key: k, value: 0, cost: 0 };
+    map[k].value += p.value; map[k].cost += p.cost;
+  });
+  const totals = computeTotals();
+  return Object.values(map).map(m => ({
+    ...m,
+    pct: totals.value ? (m.value / totals.value) * 100 : 0,
+    gainPct: pctSafe(m.value, m.cost),
+    color: (metaLookup[m.key] || {}).color || "#999",
+    label: (metaLookup[m.key] || {}).label || m.key,
+  })).sort((a,b) => b.value - a.value);
+}
+
+function computeBucketValues() {
+  const ppr = state.positions.find(p => p.id === "PPR");
+  const pprVal = ppr ? ppr.value : 0;
+  const filhaVal = state.positions.filter(p => p.owner === "Filha").reduce((s,p) => s + p.value, 0);
+  const totals = computeTotals();
+  const euVal = totals.value - pprVal - filhaVal;
+  return { ppr: pprVal, filha: filhaVal, eu: euVal };
+}
+
+const IDADE_ATUAL = 38;
+const MESES_ATE_51 = Math.max(0, (51 - IDADE_ATUAL) * 12);
+
+function futureValuePPR(pv, pmtFase1, pmtFase2, rate, monthsTotal) {
+  if (monthsTotal <= MESES_ATE_51) return futureValue(pv, pmtFase1, rate, monthsTotal);
+  const fvNaMudanca = futureValue(pv, pmtFase1, rate, MESES_ATE_51);
+  return futureValue(fvNaMudanca, pmtFase2, rate, monthsTotal - MESES_ATE_51);
+}
+
+function computeProjection() {
+  const bv = computeBucketValues();
+  const pprPmtFase1 = 1750 / 12;
+  const pprPmtFase2 = 1500 / 12;
+  const buckets = [
+    { key: "ppr",   label: "PPR",              start: bv.ppr,   pmt: pprPmtFase1,               rate: state.assumedRates.ppr,   spread: 1.5, color: "#8E6FD1" },
+    { key: "filha", label: "Ações/ETF · Filhas",start: bv.filha, pmt: state.contributions.filha, rate: state.assumedRates.filha, spread: 3.5, color: "#E85D9E" },
+    { key: "eu",    label: "Ações/ETF · Eu",   start: bv.eu,    pmt: state.contributions.eu,    rate: state.assumedRates.eu,    spread: 4.0, color: "#4EA8DE" },
+  ];
+  const data = [];
+  for (let y = 0; y <= 20; y++) {
+    const m = y * 12;
+    const row = { year: y };
+    let totalBase = 0, totalLow = 0, totalHigh = 0, totalContrib = 0;
+    buckets.forEach(b => {
+      if (b.key === "ppr") {
+        row[b.key] = futureValuePPR(b.start, pprPmtFase1, pprPmtFase2, b.rate, m);
+        totalBase += row[b.key];
+        totalLow += futureValuePPR(b.start, pprPmtFase1, pprPmtFase2, b.rate - b.spread, m);
+        totalHigh += futureValuePPR(b.start, pprPmtFase1, pprPmtFase2, b.rate + b.spread, m);
+        totalContrib += b.start + (m <= MESES_ATE_51 ? pprPmtFase1 * m : pprPmtFase1 * MESES_ATE_51 + pprPmtFase2 * (m - MESES_ATE_51));
+      } else {
+        row[b.key] = futureValue(b.start, b.pmt, b.rate, m);
+        totalBase += row[b.key];
+        totalLow += futureValue(b.start, b.pmt, b.rate - b.spread, m);
+        totalHigh += futureValue(b.start, b.pmt, b.rate + b.spread, m);
+        totalContrib += b.start + b.pmt * m;
+      }
+    });
+    row.totalBase = totalBase; row.totalLow = totalLow; row.totalHigh = totalHigh; row.totalContrib = totalContrib;
+    row.gains = Math.max(0, totalBase - totalContrib);
+    data.push(row);
+  }
+  return { data, buckets, final: data[20] };
+}
+
+// =============================================================================
+// ACTIONS
+// =============================================================================
+function updateField(id, field, value) {
+  state.positions = state.positions.map(p => p.id === id ? { ...p, [field]: value } : p);
+  persist(); render();
+}
+
+function commitValueEdit(id, inputEl) {
+  const num = parseFloat(String(inputEl.value).replace(",", "."));
+  if (!Number.isNaN(num) && num >= 0) updateField(id, "value", num);
+  state.editingId = null; render();
+}
+
+function resetAll() {
+  state.positions = SEED_FULL.map(p => ({...p}));
+  persist(); render();
+}
+
+function toggleSort(key) {
+  if (state.sortKey === key) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+  else { state.sortKey = key; state.sortDir = "desc"; }
+  render();
+}
+
+// =============================================================================
+// SVG CHART HELPERS
+// =============================================================================
+function conicGradient(items) {
+  // items: [{value, color}], returns CSS conic-gradient string
+  const total = items.reduce((s,i) => s + i.value, 0) || 1;
+  let acc = 0; const stops = [];
+  items.forEach(i => {
+    const start = (acc / total) * 360;
+    acc += i.value;
+    const end = (acc / total) * 360;
+    stops.push(`${i.color} ${start}deg ${end}deg`);
+  });
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+function cssGroupedBarChart(data, series, height) {
+  // series: [{key, color, label}]
+  const maxVal = Math.max(1, ...data.flatMap(d => series.map(s => d[s.key] || 0)));
+  const barsHtml = data.map(d => {
+    const cols = series.map(s => {
+      const v = d[s.key] || 0;
+      const h = Math.round((v / maxVal) * (height - 24));
+      return `<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:${height-24}px">
+        <div title="${s.label}: ${fmtEUR(v)}" style="width:70%;height:${h}px;background:${s.color};border-radius:3px 3px 0 0;min-height:${v>0?2:0}px"></div>
+      </div>`;
+    }).join("");
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1">
+      <div style="display:flex;width:100%;gap:2px;align-items:flex-end">${cols}</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">${d.year || d.month}</div>
+    </div>`;
+  }).join("");
+  const legend = series.map(s => `<span style="font-size:10.5px;color:var(--muted);margin-right:12px"><span class="dot" style="background:${s.color}"></span>${s.label}</span>`).join("");
+  return `<div style="display:flex;align-items:stretch;gap:4px;height:${height}px">${barsHtml}</div><div style="margin-top:8px">${legend}</div>`;
+}
+
+
+function svgBarChart(data, width, height) {
+  // data: [{symbol, gainPct}]
+  const rowH = 22, gap = 4;
+  const chartW = width - 100;
+  const maxAbs = Math.max(1, ...data.map(d => Math.abs(d.gainPct)));
+  const midX = 70;
+  let svg = `<svg viewBox="0 0 ${width} ${data.length * (rowH+gap)}" width="100%" height="${data.length * (rowH+gap)}">`;
+  data.forEach((d, i) => {
+    const y = i * (rowH + gap);
+    const barMaxW = (chartW / 2) - 10;
+    const barW = Math.abs(d.gainPct) / maxAbs * barMaxW;
+    const color = d.gainPct >= 0 ? "#2FD98A" : "#FF6B6B";
+    const x = d.gainPct >= 0 ? midX : midX - barW;
+    svg += `<text x="${midX - 8}" y="${y + rowH/2 + 4}" text-anchor="end" font-size="10.5" fill="#EAEEF6">${d.symbol}</text>`;
+    svg += `<rect x="${x}" y="${y}" width="${Math.max(barW,1)}" height="${rowH-6}" rx="3" fill="${color}"></rect>`;
+    const labelX = d.gainPct >= 0 ? midX + barW + 6 : midX - barW - 6;
+    const anchor = d.gainPct >= 0 ? "start" : "end";
+    svg += `<text x="${labelX}" y="${y + rowH/2 + 4}" text-anchor="${anchor}" font-size="9.5" fill="#8B96AC">${d.gainPct > 0 ? "+" : ""}${d.gainPct.toFixed(0)}%</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+function svgProjectionChart(data, width, height) {
+  const padL = 46, padR = 10, padT = 10, padB = 24;
+  const w = width - padL - padR, h = height - padT - padB;
+  const maxY = Math.max(...data.map(d => d.totalHigh)) * 1.05;
+  const x = (i) => padL + (i / (data.length - 1)) * w;
+  const y = (v) => padT + h - (v / maxY) * h;
+
+  function pathFor(key) {
+    return data.map((d,i) => `${i===0?"M":"L"} ${x(i).toFixed(1)} ${y(d[key]).toFixed(1)}`).join(" ");
+  }
+  function areaPath(bottomKey, topKey) {
+    let d = `M ${x(0).toFixed(1)} ${y(data[0][bottomKey]).toFixed(1)} `;
+    data.forEach((row,i) => { d += `L ${x(i).toFixed(1)} ${y(row[topKey]).toFixed(1)} `; });
+    for (let i = data.length - 1; i >= 0; i--) { d += `L ${x(i).toFixed(1)} ${y(data[i][bottomKey]).toFixed(1)} `; }
+    return d + "Z";
+  }
+
+  let svg = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">`;
+  // gridlines
+  for (let g = 0; g <= 4; g++) {
+    const gy = padT + (h/4)*g;
+    const val = maxY * (1 - g/4);
+    svg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${width-padR}" y2="${gy.toFixed(1)}" stroke="#1A2132" stroke-width="1"/>`;
+    svg += `<text x="${padL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="#8B96AC">€${(val/1000).toFixed(0)}k</text>`;
+  }
+  // x labels every 5 years
+  data.forEach((d,i) => { if (d.year % 5 === 0) svg += `<text x="${x(i).toFixed(1)}" y="${height-6}" text-anchor="middle" font-size="10" fill="#8B96AC">ano ${d.year}</text>`; });
+
+  // stacked areas: contrib (bottom) + gains (top)
+  const zero = data.map(d => ({...d, zeroLine: 0}));
+  svg += `<path d="${areaPathCustom(data, () => 0, d => d.totalContrib, x, y)}" fill="#4EA8DE" opacity="0.55"></path>`;
+  svg += `<path d="${areaPathCustom(data, d => d.totalContrib, d => d.totalBase, x, y)}" fill="#2FD98A" opacity="0.55"></path>`;
+  // reference lines
+  svg += `<path d="${pathFor("totalHigh")}" fill="none" stroke="#C9A24B" stroke-width="1.5" stroke-dasharray="4 3"></path>`;
+  svg += `<path d="${pathFor("totalLow")}" fill="none" stroke="#8B96AC" stroke-width="1.5" stroke-dasharray="4 3"></path>`;
+  svg += `</svg>`;
+  return svg;
+}
+function areaPathCustom(data, bottomFn, topFn, x, y) {
+  let d = `M ${x(0).toFixed(1)} ${y(bottomFn(data[0])).toFixed(1)} `;
+  data.forEach((row,i) => { d += `L ${x(i).toFixed(1)} ${y(topFn(row)).toFixed(1)} `; });
+  for (let i = data.length - 1; i >= 0; i--) { d += `L ${x(i).toFixed(1)} ${y(bottomFn(data[i])).toFixed(1)} `; }
+  return d + "Z";
+}
+
+// =============================================================================
+// RENDER
+// =============================================================================
+function render() {
+  const totals = computeTotals();
+  const root = document.getElementById("root");
+
+  // ---- atividade de investimento: cálculos ----
+  const actTotals = (() => {
+    const euDep = ACTIVITY_MONTHLY.reduce((s,m)=>s+m.euDep,0);
+    const filhaDep = ACTIVITY_MONTHLY.reduce((s,m)=>s+m.filhaDep,0);
+    const pprDep = ACTIVITY_MONTHLY.reduce((s,m)=>s+m.pprDep,0);
+    const euBuy = ACTIVITY_MONTHLY.reduce((s,m)=>s+m.euBuy,0);
+    const filhaBuy = ACTIVITY_MONTHLY.reduce((s,m)=>s+m.filhaBuy,0);
+    const usdBuy = ACTIVITY_MONTHLY.reduce((s,m)=>s+m.usdBuy,0);
+    const totalDep = euDep+filhaDep+pprDep;
+    const totalBuy = euBuy+filhaBuy;
+    const totalPL = ACTIVITY_ASSET_PL.reduce((s,a)=>s+a.pl,0) - 353.55;
+    return { euDep, filhaDep, pprDep, euBuy, filhaBuy, usdBuy, totalDep, totalBuy, totalPL };
+  })();
+  const sortedActivity = (() => {
+    let rows = state.activityFilterTitular ? ACTIVITY_CLOSED.filter(c=>c.titular===state.activityFilterTitular) : ACTIVITY_CLOSED;
+    const dir = state.activitySortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a,b) => {
+      const av=a[state.activitySortKey], bv=b[state.activitySortKey];
+      if (typeof av === "string") return av.localeCompare(bv)*dir;
+      return ((av||0)-(bv||0))*dir;
+    });
+  })();
+
+  // ---- ticker tape ----
+  const tickerItems = [...state.positions, ...state.positions].map(p =>
+    `<span class="tick mono" title="${escapeHtml(p.name)}"><span style="color:var(--muted)">${p.symbol}</span><span style="color:${isPos(p.dailyPct)?'var(--pos)':'var(--neg)'}">${fmtPct(p.dailyPct)}</span></span>`
+  ).join("");
+
+  // ---- table rows ----
+  let filtered = state.positions.map(p => {
+    const gainPct = pctSafe(p.value, p.cost);
+    const weightPct = totals.value ? (p.value / totals.value) * 100 : 0;
+    const signal = computeSignal(gainPct, weightPct, p.conviction);
+    return { ...p, gainPct, weightPct, signal };
+  });
+  if (state.activeCategory) filtered = filtered.filter(p => p.category === state.activeCategory);
+  if (state.activeOwner) filtered = filtered.filter(p => p.owner === state.activeOwner);
+  const dir = state.sortDir === "asc" ? 1 : -1;
+  filtered.sort((a,b) => {
+    const av = a[state.sortKey], bv = b[state.sortKey];
+    if (typeof av === "string") return av.localeCompare(bv) * dir;
+    return (av - bv) * dir;
+  });
+
+  const rows = filtered.map(p => {
+    const qty = p.shares === 0 ? "—" : (p.shares % 1 === 0 ? p.shares : p.shares.toFixed(p.shares < 1 ? 8 : 4));
+    const realizedBlock = p.realizedAmt ? `<div style="font-size:10px;margin-top:3px;color:${p.realizedAmt>=0?'var(--pos)':'var(--neg)'}">Realizado: ${fmtEUR(p.realizedAmt,"always")} (${fmtPct(p.realizedPct)})</div>` : "";
+
+    return `<tr>
+      <td>
+        ${p.symbol}
+        <div style="color:var(--muted);font-size:10px;line-height:1.4">${escapeHtml(p.name)} <span style="opacity:.6">· ${CATEGORY_META[p.category]?.label || p.category}</span></div>
+        ${realizedBlock}
+      </td>
+      <td class="mono" style="color:var(--muted)">${qty}</td>
+      <td class="mono" style="color:var(--muted)">${fmtEUR(p.cost)}</td>
+      <td class="mono">
+        ${state.editingId === p.id
+          ? `<input class="num-input" id="valueEdit-${p.id}" value="${String(p.value).replace(".",",")}" autofocus onkeydown="if(event.key==='Enter') commitValueEdit('${p.id}', this)" onblur="commitValueEdit('${p.id}', this)">`
+          : `<span class="editable" onclick="state.editingId='${p.id}';render();document.getElementById('valueEdit-${p.id}')?.focus();">${fmtEUR(p.value)}</span>`
+        }
+      </td>
+      <td class="mono" style="color:${isPos(p.dailyPct)?'var(--pos)':'var(--neg)'}">${fmtPct(p.dailyPct)}</td>
+      <td class="mono" style="color:${isPos(p.gainPct)?'var(--pos)':'var(--neg)'}">${fmtPct(p.gainPct)}</td>
+      <td><select class="sel mono" style="color:${OWNER_META[p.owner]?.color}" onchange="updateField('${p.id}','owner',this.value)">
+        <option value="Eu" ${p.owner==='Eu'?'selected':''}>Eu</option>
+        <option value="Filha" ${p.owner==='Filha'?'selected':''}>Filhas</option>
+      </select></td>
+      <td><select class="sel mono" style="color:${ROLE_META[p.role]?.color}" onchange="updateField('${p.id}','role',this.value)">
+        <option value="Base" ${p.role==='Base'?'selected':''}>Base</option>
+        <option value="Satélite" ${p.role==='Satélite'?'selected':''}>Satélite</option>
+      </select></td>
+      <td><select class="sel mono" onchange="updateField('${p.id}','conviction',this.value)">
+        ${CONVICTION_OPTIONS.map(c => `<option value="${c}" ${p.conviction===c?'selected':''}>${c}</option>`).join("")}
+      </select></td>
+      <td><span class="signal-chip mono" title="${p.signal.reasons.join(' · ')}" style="color:${p.signal.color};border-color:${p.signal.color}"><span class="dot" style="background:${p.signal.color};margin-right:6px"></span>${p.signal.label}</span></td>
+    </tr>`;
+  }).join("");
+
+  const sortArrow = (key) => state.sortKey === key ? (state.sortDir === "asc" ? "▲" : "▼") : "";
+
+  // ---- donuts ----
+  const byOwner = computeByKey("owner", OWNER_META);
+  const byRole = computeByKey("role", ROLE_META);
+  const byCategory = computeByKey("category", CATEGORY_META);
+
+  function donutCard(title, hint, data, activeKey, filterFn, ownerLabelFn) {
+    const gradient = conicGradient(data.map(d => ({ value: d.value, color: d.color })));
+    const legend = data.map(d => `
+      <div class="legend-row ${activeKey===d.key?'active':''}" onclick="${filterFn}('${d.key}')">
+        <span><span class="dot" style="background:${d.color}"></span>${ownerLabelFn ? ownerLabelFn(d) : d.label}${d.desc?`<div style="font-size:10px;color:var(--muted);margin-left:16px">${d.desc}</div>`:''}</span>
+        <span class="mono" style="color:var(--muted)">${d.pct.toFixed(1)}%</span>
+      </div>`).join("");
+    return `<div class="card">
+      <div class="card-title">${title}<span class="card-hint">${hint}</span></div>
+      <div class="donut-wrap">
+        <div class="donut" style="background:${gradient}"></div>
+        <div class="legend" style="flex:1;margin-top:0">${legend}</div>
+      </div>
+    </div>`;
+  }
+
+  // ---- bar chart ----
+  const barData = state.positions.map(p => ({ symbol: p.symbol, gainPct: pctSafe(p.value, p.cost) })).sort((a,b) => b.gainPct - a.gainPct);
+
+  // ---- projection ----
+  const proj = computeProjection();
+  const bv = computeBucketValues();
+
+  root.innerHTML = `
+    <div class="marquee-wrap"><div class="marquee-track">${tickerItems}</div></div>
+
+    <div class="header">
+      <div class="eyebrow">Painel de Controlo · Carteira</div>
+      <div class="title display">Visão Geral do Portefólio</div>
+      <div class="subtitle">Sincronizado na cloud (Firebase) — acede de qualquer dispositivo com a tua conta.</div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-cell">
+        <div class="summary-label">Valor de mercado</div>
+        <div class="summary-value mono">${fmtEUR(totals.value)}</div>
+        <div class="summary-sub" style="color:var(--muted)">Custo: ${fmtEUR(totals.cost)}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Ganho total não realizado</div>
+        <div class="summary-value mono" style="color:${isPos(totals.gainAmt)?'var(--pos)':'var(--neg)'}">${fmtEUR(totals.gainAmt,"always")}</div>
+        <div class="summary-sub" style="color:${isPos(totals.gainPct)?'var(--pos)':'var(--neg)'}">${fmtPct(totals.gainPct)}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Variação diária (reportada)</div>
+        <div class="summary-value mono" style="color:${isPos(totals.dailyAmt)?'var(--pos)':'var(--neg)'}">${fmtEUR(totals.dailyAmt,"always")}</div>
+        <div class="summary-sub" style="color:var(--muted)">soma dos movimentos do dia</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Dividendos recebidos</div>
+        <div class="summary-value mono">${fmtEUR(totals.div)}</div>
+        <div class="summary-sub" style="color:var(--muted)">ganho realizado, líquido de fonte</div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div style="grid-column:1/2">
+        <div class="card">
+          <div class="toolbar">
+            <div class="card-title" style="margin-bottom:0">Posições<span class="card-hint">clica no valor de mercado para editar</span></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span id="save-flash" class="save-flash" style="display:none">💾 guardado</span>
+              <label class="btn" style="cursor:pointer">📂 Importar extrato (CSV/Excel)<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileImport(this)"></label>
+              <label class="btn" style="cursor:pointer">➕ Adicionar só novidades<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileImport(this, 'addOnly')"></label>
+              <button id="btc-refresh-btn" class="btn" onclick="refreshBtcPriceManually()">↻ Atualizar BTC</button>
+              <button class="btn" onclick="resetAll()">↺ repor</button>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto">
+            <table class="tbl mono">
+              <thead><tr>
+                <th onclick="toggleSort('symbol')">Símbolo ${sortArrow('symbol')}</th>
+                <th onclick="toggleSort('shares')">Qtd ${sortArrow('shares')}</th>
+                <th onclick="toggleSort('cost')">Custo ${sortArrow('cost')}</th>
+                <th onclick="toggleSort('value')">Valor ${sortArrow('value')}</th>
+                <th onclick="toggleSort('dailyPct')">Dia % ${sortArrow('dailyPct')}</th>
+                <th onclick="toggleSort('gainPct')">Total % ${sortArrow('gainPct')}</th>
+                <th>Titular</th><th>Perfil</th><th>Convicção</th><th>Sinal</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+
+          <div class="footnote">Edita o "Valor" de qualquer posição para simular uma atualização de preço — os totais e gráficos recalculam automaticamente. Os valores ficam guardados neste browser. O botão "Importar extrato" atualiza posições já existentes; o botão "Adicionar só novidades" faz o oposto — nunca toca no que já tens, só cria posições novas a partir de linhas cujo nome não reconhece. PDF ainda não é suportado (formatos variam demasiado entre corretoras) — converte para Excel/CSV primeiro, ou cola os valores manualmente.</div>
+
+          <div class="formula-box">
+            <b>Como o "Sinal" é calculado</b> — soma de 3 critérios que tu controlas: desempenho não realizado (+2 a −2), a tua <b>Convicção</b> (Alta +2 / Média 0 / Baixa −2), e −1 se a posição pesar 8%+ da carteira. Soma ≥ 2 → <b style="color:#2FD98A">Reforçar</b>; soma ≤ −2 → <b style="color:#FF6B6B">Rever/Vender</b>; caso contrário → <b style="color:#E8B84B">Manter</b>. Não é aconselhamento financeiro.
+          </div>
+
+          <div class="card" style="margin-top:20px">
+            <div class="card-title">Histórico de transações · BTC<span class="card-hint">preço BTC/EUR em tempo real (CoinGecko), quando disponível</span></div>
+            <table class="tbl mono">
+              <thead><tr><th style="text-align:left">Data e hora</th><th>Tipo</th><th>Qtd</th><th>Saldo após</th></tr></thead>
+              <tbody>${BTC_TRANSACTIONS.map(t => `<tr>
+                <td style="text-align:left;color:var(--muted)">${t.date}</td>
+                <td style="color:${t.type==='Airdrop'?'var(--gold)':'var(--pos)'}">${t.type}</td>
+                <td>+${t.amount.toFixed(8)}</td>
+                <td style="color:var(--muted)">${t.balance.toFixed(8)}</td>
+              </tr>`).join("")}</tbody>
+            </table>
+            <div class="footnote">Total acumulado: <b style="color:var(--text)">${BTC_TOTAL_QTY.toFixed(8)} BTC</b>. Custo total assumido: <b style="color:var(--text)">€1.200,00</b>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+        ${donutCard("Meu vs. Filhas", "clica para filtrar a tabela", byOwner, state.activeOwner, "toggleOwnerFilter")}
+        ${donutCard("Base segura vs. Satélite de risco", 'edita o "Perfil" na tabela', byRole, null, "()=>{}")}
+        ${donutCard("Alocação por classe de ativo", "", byCategory, state.activeCategory, "toggleCategoryFilter")}
+
+        <div class="card">
+          <div class="card-title">Ganho total (%) por posição</div>
+          <div style="width:100%">${svgBarChart(barData, 420, 0)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="full-width-section">
+      <div class="card">
+        <div class="card-title">Projeção a 20 anos<span class="card-hint">cenário ilustrativo — não é uma promessa de retorno</span></div>
+
+        <div class="proj-inputs">
+          ${proj.buckets.map(b => b.key === "ppr" ? `
+          <div class="proj-input-group">
+            <div class="proj-input-label"><span class="dot" style="background:${b.color}"></span>${b.label}</div>
+            <div class="proj-input-row"><label>Fase 38-50 anos</label><span class="mono" style="color:var(--text)">145,83€/mês</span></div>
+            <div class="proj-input-row"><label>Fase 51+ anos</label><span class="mono" style="color:var(--text)">125,00€/mês</span></div>
+            <div class="proj-input-row"><label>rendimento assumido %/ano</label><input class="num-input" style="width:64px" type="number" step="0.5" value="${state.assumedRates.ppr}" onchange="state.assumedRates.ppr=Number(this.value);render();"></div>
+            <div class="proj-input-hint">inclui reembolso de IRS reinvestido (350€ ou 300€/ano)</div>
+          </div>` : `
+          <div class="proj-input-group">
+            <div class="proj-input-label"><span class="dot" style="background:${b.color}"></span>${b.label}</div>
+            <div class="proj-input-row"><label>€/mês</label><input class="num-input" style="width:64px" type="number" min="0" value="${state.contributions[b.key]}" onchange="state.contributions['${b.key}']=Math.max(0,Number(this.value));render();"></div>
+            <div class="proj-input-row"><label>rendimento assumido %/ano</label><input class="num-input" style="width:64px" type="number" step="0.5" value="${state.assumedRates[b.key]}" onchange="state.assumedRates['${b.key}']=Number(this.value);render();"></div>
+            <div class="proj-input-hint">início: ${fmtEUR(b.start)}</div>
+          </div>`).join("")}
+        </div>
+
+        <div style="margin-top:18px">${svgProjectionChart(proj.data, 900, 320)}</div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--muted);flex-wrap:wrap">
+          <span><span class="dot" style="background:#4EA8DE"></span>€ próprios investidos</span>
+          <span><span class="dot" style="background:#2FD98A"></span>Retorno possível (moderado)</span>
+          <span><span class="dot" style="background:#C9A24B"></span>— — Total · cenário otimista</span>
+          <span><span class="dot" style="background:#8B96AC"></span>— — Total · cenário conservador</span>
+        </div>
+
+        <div class="proj-summary">
+          ${proj.buckets.map(b => `<div class="proj-summary-cell"><div class="summary-label" style="color:${b.color}">${b.label} — ano 20</div><div class="summary-value mono">${fmtEUR(proj.final[b.key])}</div></div>`).join("")}
+          <div class="proj-summary-cell"><div class="summary-label" style="color:#4EA8DE">€ próprios investidos</div><div class="summary-value mono" style="color:#4EA8DE">${fmtEUR(proj.final.totalContrib)}</div></div>
+          <div class="proj-summary-cell"><div class="summary-label" style="color:var(--pos)">Retorno possível (moderado)</div><div class="summary-value mono" style="color:var(--pos)">${fmtEUR(proj.final.gains)}</div></div>
+          <div class="proj-summary-cell"><div class="summary-label">Total projetado (moderado)</div><div class="summary-value mono">${fmtEUR(proj.final.totalBase)}</div></div>
+        </div>
+
+        <div class="footnote" style="margin-top:14px">
+          No gráfico: a área azul é o dinheiro que tu próprio vais colocar; a área verde por cima é o retorno possível gerado pelo juro composto, no cenário moderado. As linhas tracejadas mostram os cenários otimista/conservador. Não considera inflação, impostos, comissões, nem alterações às contribuições ao longo dos 20 anos.
+        </div>
+      </div>
+    </div>
+
+    <div class="header" style="border-top:1px solid var(--border)">
+      <div class="eyebrow">Atividade de Investimento · 2026</div>
+      <div class="title display" style="font-size:20px">Registo, Relatório Mensal &amp; Ganhos-Perdas</div>
+      <div class="subtitle">Consolidado de 3 contas de corretagem + PPR — atividade de corretagem a partir de Janeiro de 2026</div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-cell">
+        <div class="summary-label">Total depositado</div>
+        <div class="summary-value mono">${fmtEUR(actTotals.totalDep)}</div>
+        <div class="summary-sub">Eu: ${fmtEUR(actTotals.euDep)} · Filhas: ${fmtEUR(actTotals.filhaDep)} · PPR: ${fmtEUR(actTotals.pprDep)}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Total investido (compras)</div>
+        <div class="summary-value mono">${fmtEUR(actTotals.totalBuy)}</div>
+        <div class="summary-sub">Eu: ${fmtEUR(actTotals.euBuy)} · Filhas: ${fmtEUR(actTotals.filhaBuy)}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Ganho/perda realizado (2026)</div>
+        <div class="summary-value mono" style="color:${isPos(actTotals.totalPL)?'var(--pos)':'var(--neg)'}">${fmtEUR(actTotals.totalPL,"always")}</div>
+        <div class="summary-sub">só posições já fechadas</div>
+      </div>
+      <div class="summary-cell">
+        <div class="summary-label">Conta USD — compras</div>
+        <div class="summary-value mono">${fmtEUR(actTotals.usdBuy)}</div>
+        <div class="summary-sub">sem posições fechadas em USD</div>
+      </div>
+    </div>
+
+    <div style="margin:20px 26px 0 26px;background:var(--panel-alt);border:1px solid var(--border);border-radius:14px;padding:16px 22px">
+      <div style="font-size:13px;color:var(--text)"><b>Nota sobre a conta das filhas:</b> houve um movimento de €353,55 no extrato que não corresponde a investimento real — tratado como um depósito seguido de uma perda no mesmo valor, sem detalhe operação a operação.</div>
+    </div>
+
+    <div class="body">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card">
+          <div class="card-title">Depósitos por mês<span class="card-hint">Eu vs. Filhas vs. PPR</span></div>
+          ${cssGroupedBarChart(ACTIVITY_MONTHLY, [{key:"euDep",color:"#4EA8DE",label:"Eu"},{key:"filhaDep",color:"#E85D9E",label:"Filhas"},{key:"pprDep",color:"#8E6FD1",label:"PPR"}], 180)}
+          <div class="footnote">O MSCI World (EUNL.DE, €590,02) das filhas não aparece mês a mês — comprado noutra plataforma, sem data disponível.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Compras por mês<span class="card-hint">Eu vs. Filhas</span></div>
+          ${cssGroupedBarChart(ACTIVITY_MONTHLY, [{key:"euBuy",color:"#4EA8DE",label:"Eu"},{key:"filhaBuy",color:"#E85D9E",label:"Filhas"}], 180)}
+        </div>
+        <div class="card">
+          <div class="card-title">Investimento por ano<span class="card-hint">todas as fontes</span></div>
+          ${cssGroupedBarChart(YEARLY_INVESTED, [{key:"amount",color:"#C9A24B",label:"Investido"}], 160)}
+          <div class="footnote">2021-2023 sem dados. O valor de 2020 é uma transferência de outro produto, não uma subscrição nova.</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card">
+          <div class="card-title">Ganho/perda por titular<span class="card-hint">2026</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+            <div style="background:var(--panel-alt);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:12.5px;font-weight:600">Eu <span style="color:var(--muted);font-weight:400">(EUR-51153667)</span></div><div style="font-size:10.5px;color:var(--muted)">2 fechos, NOS.PT</div></div>
+              <div class="mono" style="font-size:16px;font-weight:700;color:var(--neg)">-6,93 €</div>
+            </div>
+            <div style="background:var(--panel-alt);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:12.5px;font-weight:600">Filhas <span style="color:var(--muted);font-weight:400">(EUR-53984039)</span></div><div style="font-size:10.5px;color:var(--muted)">1 ajuste (depósito + perda)</div></div>
+              <div class="mono" style="font-size:16px;font-weight:700;color:var(--neg)">-353,55 €</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Retorno anual do PPR<span class="card-hint">aproximado</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+            ${PPR_ANNUAL_RETURN.map(p => `
+            <div style="background:var(--panel-alt);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:12.5px;font-weight:600">${p.year}</div><div style="font-size:10.5px;color:var(--muted)">${p.from} → ${p.to}</div></div>
+              <div class="mono" style="font-size:16px;font-weight:700;color:${p.pct>=0?'var(--pos)':'var(--neg)'}">${p.pct>0?'+':''}${p.pct.toFixed(2)}%</div>
+            </div>`).join("")}
+          </div>
+          <div class="footnote">Calculado a partir dos preços de subscrição mais próximos de cada fronteira de ano — não é a cotação exata a 31/12.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dividendos &amp; taxas (2026)</div>
+          <table class="tbl mono"><tbody>
+            <tr><td style="text-align:left;color:var(--muted)">Dividendos brutos</td><td style="color:var(--pos)">+7,79 €</td></tr>
+            <tr><td style="text-align:left;color:var(--muted)">Retenção na fonte</td><td style="color:var(--neg)">-2,09 €</td></tr>
+            <tr><td style="text-align:left;color:var(--muted)">Juros de saldo livre</td><td style="color:var(--pos)">+0,17 €</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="full-width-section" style="padding-bottom:8px">
+      <div class="card">
+        <div class="card-title">Watchlist<span class="card-hint">itens em análise, fora da carteira — não são recomendações de compra</span></div>
+        <table class="tbl mono">
+          <thead><tr>
+            <th style="text-align:left">Item</th>
+            <th>Perfil</th>
+            <th>Preço (jul/2026)</th>
+            <th style="text-align:left">Tese resumida</th>
+          </tr></thead>
+          <tbody>${WATCHLIST.map(w => `<tr>
+            <td style="text-align:left;color:var(--text)">${w.ticker}<div style="color:var(--muted);font-size:10px">${w.name}</div></td>
+            <td>${w.cat}</td>
+            <td>${w.moeda === "USD" ? "$" : ""}${w.price.toFixed(2)}${w.moeda !== "USD" ? " " + w.moeda : ""}</td>
+            <td style="text-align:left;color:var(--muted);font-size:11px;white-space:normal;max-width:340px">${w.tese}</td>
+          </tr>`).join("")}</tbody>
+        </table>
+        <div class="footnote">Regra dos 30 dias aplica-se a qualquer item aqui — nenhuma entrada por impulso. Histórico mensal completo está no ficheiro Excel "registo_investimentos.xlsx", folha "Watchlist".</div>
+      </div>
+    </div>
+
+    <div class="full-width-section">
+      <div class="card">
+        <div class="card-title">Posições Fechadas — detalhe<span class="card-hint">${sortedActivity.length} posições · clica no cabeçalho para ordenar</span></div>
+        <div class="filter-row">
+          <button class="filter-btn ${state.activityFilterTitular===null?'active':''}" onclick="setActivityFilter(null)">Todas</button>
+          <button class="filter-btn ${state.activityFilterTitular==='Eu'?'active':''}" onclick="setActivityFilter('Eu')">Eu</button>
+          <button class="filter-btn ${state.activityFilterTitular==='Filhas'?'active':''}" onclick="setActivityFilter('Filhas')">Filhas</button>
+        </div>
+        <div style="overflow-x:auto;max-height:360px;overflow-y:auto">
+          <table class="tbl mono">
+            <thead><tr>
+              <th onclick="toggleActivitySort('instrumento')">Instrumento</th>
+              <th>Titular</th>
+              <th onclick="toggleActivitySort('dataAbertura')">Abertura</th>
+              <th onclick="toggleActivitySort('dataFecho')">Fecho</th>
+              <th onclick="toggleActivitySort('horasDetidas')">Detenção</th>
+              <th onclick="toggleActivitySort('lucroPrejuizo')">Resultado</th>
+            </tr></thead>
+            <tbody>${sortedActivity.map(c => `<tr>
+              <td>${c.instrumento} <span style="margin-left:6px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid;color:${c.categoria==='OUTRO'?'var(--neg)':'var(--blue)'};border-color:${c.categoria==='OUTRO'?'var(--neg)':'var(--blue)'}">${c.categoria}</span></td>
+              <td style="color:${c.titular==='Filhas'?'var(--pink)':'var(--blue)'}">${c.titular}</td>
+              <td style="color:var(--muted)">${c.dataAbertura}</td>
+              <td style="color:var(--muted)">${c.dataFecho}</td>
+              <td style="color:var(--muted)">${fmtHoras(c.horasDetidas)}</td>
+              <td style="color:${isPos(c.lucroPrejuizo)?'var(--pos)':'var(--neg)'}">${fmtEUR(c.lucroPrejuizo,"always")}</td>
+            </tr>`).join("")}</tbody>
+          </table>
+        </div>
+        <div class="footnote">Dados dos extratos da corretora, Janeiro–Julho 2026. Para o detalhe bruto, usa o ficheiro Excel "registo_investimentos.xlsx".</div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleOwnerFilter(key) { state.activeOwner = state.activeOwner === key ? null : key; render(); }
+function toggleCategoryFilter(key) { state.activeCategory = state.activeCategory === key ? null : key; render(); }
+function toggleActivitySort(key) {
+  if (state.activitySortKey === key) state.activitySortDir = state.activitySortDir === "asc" ? "desc" : "asc";
+  else { state.activitySortKey = key; state.activitySortDir = "desc"; }
+  render();
+}
+function setActivityFilter(v) { state.activityFilterTitular = v; render(); }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// =============================================================================
+// LIVE BTC PRICE (best effort — falls back silently if blocked/offline)
+// =============================================================================
+async function fetchBtcPrice() {
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur&include_24hr_change=true");
+    const data = await res.json();
+    const price = data?.bitcoin?.eur;
+    const change24h = data?.bitcoin?.eur_24h_change;
+    if (price) {
+      state.positions = state.positions.map(p => {
+        if (p.id !== "BTC") return p;
+        const newValue = BTC_TOTAL_QTY * price;
+        const dailyAmt = change24h ? newValue * (change24h / (100 + change24h)) : 0;
+        return { ...p, value: newValue, dailyPct: change24h ?? 0, dailyAmt };
+      });
+      render();
+    }
+  } catch (e) {
+    // sem internet ou CORS bloqueado ao abrir como ficheiro local — mantém o valor de referência
+  }
+}
+
+// =============================================================================
+// INIT
+// =============================================================================
+loadPersisted();
+render();
+fetchBtcPrice();
+</script>
+</body>
+</html>
