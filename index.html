@@ -1,4 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Controlo · Carteira</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
+  :root {
+    --bg: #0A0E1A;
+    --panel: #121828;
+    --panel-alt: #182036;
+    --border: #232C42;
+    --text: #EAEEF6;
+    --muted: #8B96AC;
+    --pos: #2FD98A;
+    --neg: #FF6B6B;
+    --gold: #C9A24B;
+    --blue: #4EA8DE;
+    --purple: #8E6FD1;
+    --pink: #E85D9E;
+    --orange: #E8734B;
+    --btc: #F7931A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .mono { font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; }
+  .display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+  #root { max-width: 1400px; margin: 0 auto; border-radius: 18px; overflow: hidden; }
+
+  /* ---------- Ticker tape ---------- */
+  .marquee-wrap {
+    border-bottom: 1px solid var(--border); background: #080B14; overflow: hidden;
+    white-space: nowrap; position: relative; padding: 9px 0;
+  }
+  .marquee-track { display: inline-flex; animation: scroll 42s linear infinite; }
+  .marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .tick { display: inline-flex; align-items: baseline; gap: 6px; padding: 0 18px; font-size: 12.5px; }
+  .tick + .tick { border-left: 1px solid var(--border); }
+
+  /* ---------- Header ---------- */
+  .header { padding: 22px 26px 18px 26px; border-bottom: 1px solid var(--border); }
+  .eyebrow { color: var(--gold); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+  .title { font-size: 26px; font-weight: 600; margin-top: 4px; letter-spacing: -0.01em; }
+  .subtitle { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+  /* ---------- Summary strip ---------- */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  @media (max-width: 780px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+  .summary-cell { background: var(--panel); padding: 18px 22px; }
+  .summary-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .summary-value { font-size: 22px; font-weight: 600; }
+  .summary-sub { font-size: 12.5px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+  /* ---------- Body layout ---------- */
+  .body { padding: 24px 26px 30px 26px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .body { grid-template-columns: 1fr; } }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .card-hint { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+  .legend { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .legend-row { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: background .15s ease; }
+  .legend-row:hover, .legend-row.active { background: var(--panel-alt); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filter-btn { font-size: 11px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel-alt); color: var(--muted); cursor: pointer; font-family: inherit; }
+  .filter-btn.active { border-color: var(--gold); color: var(--text); }
+
+  .donut-wrap { display: flex; align-items: center; gap: 12px; }
+  .donut { width: 130px; height: 130px; border-radius: 50%; flex-shrink: 0; position: relative; }
+  .donut::after { content: ''; position: absolute; inset: 19%; background: var(--panel); border-radius: 50%; }
+
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th {
+    text-align: right; font-weight: 500; color: var(--muted); font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: .06em; padding: 8px 10px; cursor: pointer; user-select: none; white-space: nowrap; border-bottom: 1px solid var(--border);
+  }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl td { text-align: right; padding: 9px 10px; border-bottom: 1px solid #1A2132; white-space: nowrap; }
+  .tbl td:first-child { white-space: normal; }
+  .tbl tbody tr:hover { background: var(--panel-alt); }
+
+  .editable { background: transparent; border: 1px dashed transparent; border-radius: 5px; padding: 2px 6px; cursor: text; }
+  .editable:hover { border-color: var(--muted); }
+  .num-input {
+    background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); border-radius: 6px;
+    padding: 3px 6px; font-family: inherit; font-size: 12px; text-align: right;
+  }
+  .num-input:focus { border-color: var(--gold); outline: none; }
+
+  select.sel { background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 11.5px; border-radius: 6px; padding: 3px 5px; cursor: pointer; }
+  select.sel:hover { border-color: var(--gold); }
+
+  .signal-chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 9px 3px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap; cursor: default; }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .btn:hover { border-color: var(--gold); }
+  .btn-xs { padding: 3px 7px; font-size: 10px; }
+  .save-flash { color: var(--pos); font-size: 11.5px; display: flex; align-items: center; gap: 4px; }
+
+  .footnote { font-size: 11px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
+  .formula-box { margin-top: 18px; padding: 14px 16px; background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px; font-size: 11.5px; color: var(--muted); line-height: 1.7; }
+  .formula-box b { color: var(--text); }
+
+  .proj-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 4px; }
+  @media (max-width: 780px) { .proj-inputs { grid-template-columns: 1fr; } }
+  .proj-input-group { background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .proj-input-label { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; }
+  .proj-input-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); }
+  .proj-input-hint { margin-top: 8px; font-size: 10.5px; color: var(--muted); }
+  .proj-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 18px; }
+  @media (max-width: 1000px) { .proj-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .proj-summary { grid-template-columns: repeat(2, 1fr); } }
+  .proj-summary-cell { background: var(--panel-alt); padding: 12px 14px; }
+
+  .full-width-section { padding: 0 26px 30px 26px; }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div id="lock-screen" style="position:fixed;inset:0;background:#0A0E1A;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:Inter,sans-serif">
+  <div style="background:#121828;border:1px solid #232C42;border-radius:14px;padding:32px;width:300px;text-align:center">
+    <div style="color:#C9A24B;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px">Portefólio Privado</div>
+    <input id="login-email" type="email" placeholder="Email" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #232C42;background:#182036;color:#EAEEF6;font-size:14px;margin-bottom:8px">
+    <input id="login-pw" type="password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #232C42;background:#182036;color:#EAEEF6;font-size:14px;margin-bottom:10px" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" style="width:100%;padding:10px;border-radius:8px;border:none;background:#C9A24B;color:#0A0E1A;font-weight:600;cursor:pointer;margin-bottom:8px">Entrar</button>
+    <button onclick="doSignup()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #232C42;background:transparent;color:#8B96AC;font-size:12px;cursor:pointer">Criar conta (1ª vez)</button>
+    <div id="login-error" style="color:#FF6B6B;font-size:11px;margin-top:10px;display:none"></div>
+    <div id="login-status" style="color:#8B96AC;font-size:11px;margin-top:10px">A ligar ao Firebase...</div>
+  </div>
+</div>
+<script>
+  // -------------------------------------------------------------------------
+  // CONFIGURAÇÃO FIREBASE — substitui pelos valores do teu projeto
+  // (Consola Firebase → Definições do projeto → as tuas apps → SDK setup)
+  // -------------------------------------------------------------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyBp5kxk4MIxdL_qytOWp89Ev1BgwoZ-4oU",
+    authDomain: "portefolio-9894a.firebaseapp.com",
+    projectId: "portefolio-9894a",
+    storageBucket: "portefolio-9894a.firebasestorage.app",
+    messagingSenderId: "591999517120",
+    appId: "1:591999517120:web:026bbc867b6074f6650825",
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbAuth = firebase.auth();
+  const fbDb = firebase.firestore();
+  let currentUser = null;
+
+  function showLoginError(msg) {
+    const el = document.getElementById("login-error");
+    el.textContent = msg; el.style.display = "block";
+  }
+  function doLogin() {
+    const email = document.getElementById("login-email").value;
+    const pw = document.getElementById("login-pw").value;
+    fbAuth.signInWithEmailAndPassword(email, pw).catch((err) => showLoginError(traduzErro(err.code)));
+  }
+  function doSignup() {
+    const email = document.getElementById("login-email").value;
+    const pw = document.getElementById("login-pw").value;
+    if (pw.length < 6) { showLoginError("A password precisa de pelo menos 6 caracteres."); return; }
+    fbAuth.createUserWithEmailAndPassword(email, pw).catch((err) => showLoginError(traduzErro(err.code)));
+  }
+  function traduzErro(code) {
+    const map = {
+      "auth/invalid-email": "Email inválido.",
+      "auth/user-not-found": "Conta não encontrada — usa 'Criar conta'.",
+      "auth/wrong-password": "Password errada.",
+      "auth/email-already-in-use": "Já existe uma conta com este email — usa 'Entrar'.",
+      "auth/weak-password": "Password demasiado fraca (mínimo 6 caracteres).",
+      "auth/invalid-credential": "Email ou password incorretos.",
+    };
+    return map[code] || "Erro: " + code;
+  }
+
+  fbAuth.onAuthStateChanged((user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("lock-screen").style.display = "none";
+      loadFromFirestore();
+    } else {
+      currentUser = null;
+      document.getElementById("login-email").value = "";
+      document.getElementById("login-pw").value = "";
+      document.getElementById("login-error").style.display = "none";
+      document.getElementById("login-status").textContent = "";
+      document.getElementById("lock-screen").style.display = "flex";
+    }
+  });
+
+  function doLogout() {
+    fbAuth.signOut();
+  }
+</script>
+
+<div id="root"></div>
+
+<script>
+// =============================================================================
+// DATA
+// =============================================================================
+const SEED = [
+  { id: "VIRT",  symbol: "VIRT",        name: "Virtu Financial, Inc.",                     category: "Ações", shares: 2,             cost: 122.78,  value: 118.04, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "BYRN",  symbol: "BYRN",        name: "Byrna Technologies Inc.",                   category: "Ações", shares: 71,            cost: 391.61,  value: 328.02, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "BSX",   symbol: "BSX",         name: "Boston Scientific Corporation",             category: "Ações", shares: 3,             cost: 142.78,  value: 143.22, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "CDNS",  symbol: "CDNS",        name: "Cadence Design Systems, Inc.",              category: "Ações", shares: 0.4733,        cost: 151.37,  value: 159.39, div: 0,      dailyPct: 1.80, dailyAmt: 2.88,  realizedPct: null, realizedAmt: null },
+  { id: "ETOR",  symbol: "ETOR",        name: "eToro Group Ltd.",                          category: "Ações", shares: 2.9781,        cost: 119.26,  value: 108.19, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "IONQ",  symbol: "IONQ",        name: "IonQ, Inc.",                                category: "Ações", shares: 3,             cost: 146.50,  value: 121.08, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "NVDA",  symbol: "NVDA",        name: "NVIDIA Corporation",                        category: "Ações", shares: 0.683,         cost: 139.39,  value: 149.82, div: 0,      dailyPct: 0.74, dailyAmt: 0.96,  realizedPct: null, realizedAmt: null },
+  { id: "MA",    symbol: "MA",          name: "Mastercard Incorporated",                   category: "Ações", shares: 0.1753,        cost: 94.08,   value: 99.97,  div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "FVRR",  symbol: "FVRR",        name: "Fiverr International Ltd.",                 category: "Ações", shares: 11,            cost: 113.41,  value: 102.96, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "FLUXO", symbol: "FLUXO.AS",    name: "Flow Traders N.V.",                         category: "Ações", shares: 6,             cost: 153.92,  value: 159.84, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "ENX",   symbol: "ENX.PA",      name: "Euronext N.V.",                             category: "Ações", shares: 1,             cost: 126.30,  value: 161.1, div: 3.18,   dailyPct: 0, dailyAmt: 0,  realizedPct: 2.52, realizedAmt: 3.18 },
+  { id: "ALFEN", symbol: "ALFEN.AS",    name: "Alfen N.V.",                                category: "Ações", shares: 4,             cost: 53.88,   value: 50.72,  div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "NVG",   symbol: "NVG.LS",      name: "The Navigator Company, S.A.",               category: "Ações", shares: 29,            cost: 99.24,   value: 94.25,  div: 3.2619, dailyPct: 0, dailyAmt: 0,  realizedPct: 3.76, realizedAmt: 6.0619 },
+  { id: "ISLN",  symbol: "ISLN.L",      name: "iShares Physical Silver ETC",               category: "ETC",   shares: 3.9358,        cost: 238.86,  value: 233.83, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "EGLN",  symbol: "EGLN.L",      name: "iShares Physical Gold ETC",                 category: "ETC",   shares: 5.2906,        cost: 440.03,  value: 378.28, div: 0,      dailyPct: -2.31, dailyAmt: -8.64,  realizedPct: null, realizedAmt: null },
+  { id: "SXR8A", symbol: "SXR8.DE",     name: "iShares Core S&P 500 UCITS ETF",            category: "ETF",   shares: 0.3351,        cost: 230.55,  value: 242.12, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "IS0E",  symbol: "IS0E.DE",     name: "iShares Gold Producers UCITS ETF",          category: "ETF",   shares: 12.4177,       cost: 514.39,  value: 416.74, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "SXR8B", symbol: "SXR8.DE (2)", name: "iShares Core S&P 500 UCITS ETF",            category: "ETF",   shares: 0.3,           cost: 206.38,  value: 216.76, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "EUNL",  symbol: "EUNL.DE",     name: "iShares Core MSCI World UCITS ETF",         category: "ETF",   shares: 1,             cost: 84.33,   value: 128.13, div: 0,      dailyPct: 0.20, dailyAmt: 0.25,  realizedPct: null, realizedAmt: null },
+  { id: "EUNLF", symbol: "EUNL.DE",     name: "iShares Core MSCI World UCITS ETF (conta filhas)", category: "ETF", shares: 5.2415, cost: 590.02, value: 671.59, div: 0,      dailyPct: 0.20, dailyAmt: 1.32,  realizedPct: null, realizedAmt: null },
+  { id: "VWCE",  symbol: "VWCE.DE",     name: "Vanguard FTSE All-World UCITS ETF",         category: "ETF",   shares: 1.6225,        cost: 248.24,  value: 272.58, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
+  { id: "LSMC",  symbol: "LSMC.DE",     name: "Amundi MSCI Semiconductors UCITS ETF (Acc)",category: "ETF",   shares: 2,             cost: 157.66,  value: 221.4, div: 0,      dailyPct: 0,     dailyAmt: 0,      realizedPct: null, realizedAmt: null },
+  { id: "PPR",   symbol: "5868986",     name: "Alves Ribeiro PPR/OICVM",                   category: "PPR",   shares: 304.0769,      cost: 6107.20, value: 6489.0,div: 0,      dailyPct: 0,     dailyAmt: 0,      realizedPct: null, realizedAmt: null },
+  { id: "BTC",   symbol: "BTC",         name: "Bitcoin",                                   category: "Cripto",shares: 0.0218358565,  cost: 1200.00, value: 1216.94,div: 0,      dailyPct: 0,     dailyAmt: 0,      realizedPct: null, realizedAmt: null },
+];
+
+const BTC_TRANSACTIONS = [
+  { date: "2026-07-04 02:40:53", amount: 0.0004578344, type: "Airdrop",   balance: 0.0218358565, desc: "Bônus de AirDrop" },
+  { date: "2026-07-04 02:11:13", amount: 0.0001825921, type: "Airdrop",   balance: 0.0213780221, desc: "Bônus de AirDrop" },
+  { date: "2026-07-01 12:04:16", amount: 0.00237958,   type: "Depositar", balance: 0.02119543,   desc: "Depositar" },
+  { date: "2026-06-30 10:16:20", amount: 0.01078615,   type: "Depositar", balance: 0.01881585,   desc: "Depositar" },
+  { date: "2026-06-30 10:15:02", amount: 0.0080297,    type: "Depositar", balance: 0.0080297,    desc: "Depositar" },
+];
+const BTC_TOTAL_QTY = 0.0218358565;
+const BTC_FALLBACK_PRICE_EUR = 56300;
+
+const CATEGORY_META = {
+  "Ações":  { label: "Ações individuais", color: "#4EA8DE" },
+  "ETF":    { label: "ETFs de Ações",     color: "#2FD98A" },
+  "ETC":    { label: "ETC (Matérias-primas)", color: "#C9A24B" },
+  "PPR":    { label: "PPR",               color: "#8E6FD1" },
+  "Cripto": { label: "Criptoativos",      color: "#F7931A" },
+};
+const BASE_IDS = new Set(["PPR", "EUNL", "EUNLF", "VWCE", "SXR8A", "SXR8B"]);
+const DAUGHTER_IDS = new Set(["ISLN", "EGLN", "SXR8A", "IS0E", "EUNLF"]);
+const ROLE_META = { "Base": { color: "#4EA8DE", desc: "diversificado, baixa volatilidade" }, "Satélite": { color: "#E8734B", desc: "concentrado, alto potencial/risco" } };
+const OWNER_META = { "Eu": { color: "#4EA8DE", desc: "carteira própria" }, "Filha": { color: "#E85D9E", desc: "investimento para as filhas" } };
+const CONVICTION_SCORE = { Alta: 2, Média: 0, Baixa: -2 };
+const CONVICTION_OPTIONS = ["Alta", "Média", "Baixa"];
+
+const SEED_FULL = SEED.map(p => ({
+  ...p,
+  conviction: "Média",
+  role: BASE_IDS.has(p.id) ? "Base" : "Satélite",
+  owner: DAUGHTER_IDS.has(p.id) ? "Filha" : "Eu",
+}));
+
+const MUTABLE_FIELDS = ["value","conviction","role","owner","dailyPct","dailyAmt"];
+const LS_OVERRIDES = "pd_overrides_v1";
+
+// =============================================================================
+// ATIVIDADE DE INVESTIMENTO — dados dos extratos da corretora (2026) e PPR
+// =============================================================================
+const ACTIVITY_MONTHLY = [
+  { month: "Jan", euDep: 200, euBuy: 226.72, filhaDep: 3000, filhaBuy: 1404.97, usdBuy: 6.05, pprDep: 100 },
+  { month: "Fev", euDep: 500, euBuy: 374.49, filhaDep: 0,    filhaBuy: 209.33,  usdBuy: 6.33, pprDep: 100 },
   { month: "Mar", euDep: 0,   euBuy: 0,      filhaDep: 0,    filhaBuy: 0,       usdBuy: 0,    pprDep: 100 },
   { month: "Abr", euDep: 0,   euBuy: 0,      filhaDep: 0,    filhaBuy: 0,       usdBuy: 0,    pprDep: 100 },
   { month: "Mai", euDep: 500, euBuy: 259.58, filhaDep: 0,    filhaBuy: 99.98,   usdBuy: 175.60, pprDep: 100 },
@@ -1105,2007 +1387,3 @@ fetchBtcPrice();
 </script>
 </body>
 </html>
-elList,
-  ComposedChart, Area, Line, Legend,
-} from "recharts";
-import { ArrowUpRight, ArrowDownRight, RotateCcw, ChevronUp, ChevronDown, Save, Upload } from "lucide-react";
-
-// ---------------------------------------------------------------------------
-// Base data — extracted from the user's portfolio statement
-// ---------------------------------------------------------------------------
-const SEED = [
-  { id: "VIRT",        symbol: "VIRT",         name: "Virtu Financial, Inc.",                          category: "Ações",   shares: 2,             avg: "61,39",     last: "59,0200",     cost: 122.78,  value: 118.04, div: 0,      dailyPct: 3.97, dailyAmt: 4.64,  realizedPct: null, realizedAmt: null },
-  { id: "BYRN",        symbol: "BYRN",         name: "Byrna Technologies Inc.",                        category: "Ações",   shares: 71,            avg: "5,5157",    last: "4,6200",      cost: 391.61,  value: 328.02, div: 0,      dailyPct: 8.00, dailyAmt: 22.27,  realizedPct: null, realizedAmt: null },
-  { id: "BSX",         symbol: "BSX",          name: "Boston Scientific Corporation",                  category: "Ações",   shares: 3,             avg: "47,60",     last: "47,7400",     cost: 142.78,  value: 143.22, div: 0,      dailyPct: 1.50, dailyAmt: 2.07,  realizedPct: null, realizedAmt: null },
-  { id: "CDNS",        symbol: "CDNS",         name: "Cadence Design Systems, Inc.",                   category: "Ações",   shares: 0.4733,        avg: "319,82",    last: "336,76",    cost: 151.37,  value: 159.39, div: 0,      dailyPct: 1.80, dailyAmt: 2.88,  realizedPct: null, realizedAmt: null },
-  { id: "ETOR",        symbol: "ETOR",         name: "eToro Group Ltd.",                               category: "Ações",   shares: 2.9781,        avg: "40,05",     last: "36,3300",     cost: 119.26,  value: 108.19, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "IONQ",        symbol: "IONQ",         name: "IonQ, Inc.",                                     category: "Ações",   shares: 3,             avg: "48,83",     last: "40,3600",     cost: 146.50,  value: 121.08, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "NVDA",        symbol: "NVDA",         name: "NVIDIA Corporation",                             category: "Ações",   shares: 0.683,         avg: "204,08",    last: "219,36",    cost: 139.39,  value: 149.82, div: 0,      dailyPct: 0.74, dailyAmt: 0.96,  realizedPct: null, realizedAmt: null },
-  { id: "MA",          symbol: "MA",           name: "Mastercard Incorporated",                        category: "Ações",   shares: 0.1753,        avg: "536,70",    last: "570,30",    cost: 94.08,   value: 99.97,  div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "FVRR",        symbol: "FVRR",         name: "Fiverr International Ltd.",                      category: "Ações",   shares: 11,            avg: "10,31",     last: "9,3600",      cost: 113.41,  value: 102.96, div: 0,      dailyPct: -19.50, dailyAmt: -24.82,  realizedPct: null, realizedAmt: null },
-  { id: "FLUXO",       symbol: "FLUXO.AS",     name: "Flow Traders N.V.",                               category: "Ações",   shares: 6,             avg: "25,65",     last: "26,6400",     cost: 153.92,  value: 159.84, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "ENX",         symbol: "ENX.PA",       name: "Euronext N.V.",                                  category: "Ações",   shares: 1,             avg: "126,30",    last: "161,10",    cost: 126.30,  value: 161.1, div: 3.18,   dailyPct: 0, dailyAmt: 0,  realizedPct: 2.52, realizedAmt: 3.18 },
-  { id: "ALFEN",       symbol: "ALFEN.AS",     name: "Alfen N.V.",                                     category: "Ações",   shares: 4,             avg: "13,47",     last: "12,6800",     cost: 53.88,   value: 50.72,  div: 0,      dailyPct: 4.36, dailyAmt: 2.20,  realizedPct: null, realizedAmt: null },
-  { id: "NVG",         symbol: "NVG.LS",       name: "The Navigator Company, S.A.",                    category: "Ações",   shares: 29,            avg: "3,422",     last: "3,2500",     cost: 99.24,   value: 94.25,  div: 3.2619, dailyPct: 0, dailyAmt: 0,  realizedPct: 3.76, realizedAmt: 6.0619 },
-  { id: "ISLN",        symbol: "ISLN.L",       name: "iShares Physical Silver ETC",                    category: "ETC",     shares: 3.9358,        avg: "70,4882",   last: "59,4100",   cost: 238.86,  value: 233.83, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "EGLN",        symbol: "EGLN.L",       name: "iShares Physical Gold ETC",                      category: "ETC",     shares: 5.2906,        avg: "83,172",    last: "71,5000",     cost: 440.03,  value: 378.28, div: 0,      dailyPct: -2.31, dailyAmt: -8.64,  realizedPct: null, realizedAmt: null },
-  { id: "SXR8A",       symbol: "SXR8.DE",      name: "iShares Core S&P 500 UCITS ETF",                 category: "ETF",     shares: 0.3351,        avg: "687,98",    last: "722,54",    cost: 230.55,  value: 242.12, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "IS0E",        symbol: "IS0E.DE",      name: "iShares Gold Producers UCITS ETF",               category: "ETF",     shares: 12.4177,       avg: "41,421",    last: "33,5600",     cost: 514.39,  value: 416.74, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "SXR8B",       symbol: "SXR8.DE (2)",  name: "iShares Core S&P 500 UCITS ETF",                 category: "ETF",     shares: 0.3,           avg: "687,92",    last: "722,54",    cost: 206.38,  value: 216.76, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "EUNL",        symbol: "EUNL.DE",      name: "iShares Core MSCI World UCITS ETF",              category: "ETF",     shares: 1,             avg: "84,33",     last: "128,13",    cost: 84.33,   value: 128.13, div: 0,      dailyPct: 0.20, dailyAmt: 0.25,  realizedPct: null, realizedAmt: null },
-  { id: "EUNLF",       symbol: "EUNL.DE",      name: "iShares Core MSCI World UCITS ETF (conta filhas)", category: "ETF",   shares: 5.2415,        avg: "112,566",   last: "128,13",    cost: 590.02,  value: 671.59, div: 0,      dailyPct: 0.20, dailyAmt: 1.32,  realizedPct: null, realizedAmt: null },
-  { id: "VWCE",        symbol: "VWCE.DE",      name: "Vanguard FTSE All-World UCITS ETF",              category: "ETF",     shares: 1.6225,        avg: "153,00",    last: "168,00",    cost: 248.24,  value: 272.58, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "LSMC",        symbol: "LSMC.DE",      name: "Amundi MSCI Semiconductors UCITS ETF (Acc)",     category: "ETF",     shares: 2,             avg: "78,83",     last: "110,70",    cost: 157.66,  value: 221.4, div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "PPR",         symbol: "5868986",     name: "Alves Ribeiro PPR/OICVM",                        category: "PPR",     shares: 304.0769,      avg: "20,0844",    last: "21,3400",    cost: 6107.20, value: 6489.0,div: 0,      dailyPct: 0, dailyAmt: 0,  realizedPct: null, realizedAmt: null },
-  { id: "BTC",         symbol: "BTC",          name: "Bitcoin",                                        category: "Cripto",  shares: 0.0218358565,  avg: "—", last: "55.731,30", cost: 1200.00, value: 1216.94, div: 0, dailyPct: 0, dailyAmt: 0, realizedPct: null, realizedAmt: null },
-];
-
-const BTC_TRANSACTIONS = [
-  { date: "2026-07-04 02:40:53", amount: 0.0004578344, type: "Airdrop",   balance: 0.0218358565, desc: "Bônus de AirDrop" },
-  { date: "2026-07-04 02:11:13", amount: 0.0001825921, type: "Airdrop",   balance: 0.0213780221, desc: "Bônus de AirDrop" },
-  { date: "2026-07-01 12:04:16", amount: 0.00237958,   type: "Depositar", balance: 0.02119543,   desc: "Depositar" },
-  { date: "2026-06-30 10:16:20", amount: 0.01078615,   type: "Depositar", balance: 0.01881585,   desc: "Depositar" },
-  { date: "2026-06-30 10:15:02", amount: 0.0080297,    type: "Depositar", balance: 0.0080297,    desc: "Depositar" },
-];
-const BTC_TOTAL_QTY = 0.0218358565;
-const BTC_FALLBACK_PRICE_EUR = 56300; // referência estática, caso a chamada em tempo real falhe
-
-const CATEGORY_META = {
-  "Ações": { label: "Ações individuais", color: "#4EA8DE" },
-  "ETF":   { label: "ETFs de Ações",     color: "#2FD98A" },
-  "ETC":   { label: "ETC (Matérias-primas)", color: "#C9A24B" },
-  "PPR":   { label: "PPR",               color: "#8E6FD1" },
-  "Cripto":{ label: "Criptoativos",      color: "#F7931A" },
-};
-
-const CONVICTION_SCORE = { Alta: 2, Média: 0, Baixa: -2 };
-const CONVICTION_OPTIONS = ["Alta", "Média", "Baixa"];
-
-// Sinal = combinação transparente de 3 fatores que o próprio utilizador
-// pode inspecionar e ajustar — NÃO é uma previsão de mercado.
-//  1) desempenho não realizado da posição
-//  2) peso da posição na carteira (concentração = risco)
-//  3) convicção pessoal na tese (input do utilizador)
-function computeSignal(gainPct, weightPct, conviction) {
-  let score = 0;
-  const reasons = [];
-
-  if (gainPct >= 15) { score += 2; reasons.push("ganho > 15%"); }
-  else if (gainPct >= 0) { score += 1; reasons.push("ganho positivo"); }
-  else if (gainPct >= -15) { score -= 1; reasons.push("perda até 15%"); }
-  else { score -= 2; reasons.push("perda > 15%"); }
-
-  score += CONVICTION_SCORE[conviction] ?? 0;
-  reasons.push(`convicção ${conviction.toLowerCase()}`);
-
-  if (weightPct >= 8) { score -= 1; reasons.push(`posição concentrada (${weightPct.toFixed(1)}% da carteira)`); }
-
-  // trava de segurança: perda grande + convicção baixa força alerta,
-  // independentemente da soma
-  if (gainPct <= -15 && conviction === "Baixa") {
-    return { label: "Rever / Vender", color: "#FF6B6B", score, reasons };
-  }
-  if (score >= 2) return { label: "Reforçar", color: "#2FD98A", score, reasons };
-  if (score <= -2) return { label: "Rever / Vender", color: "#FF6B6B", score, reasons };
-  return { label: "Manter", color: "#E8B84B", score, reasons };
-}
-
-// ---------------------------------------------------------------------------
-// Atividade de investimento — extraída dos extratos da corretora (2026)
-// ---------------------------------------------------------------------------
-const ACTIVITY_MONTHLY = [
-  { month: "Jan", euDep: 200, euBuy: 226.72, filhaDep: 3000, filhaBuy: 1404.97, usdBuy: 6.05, pprDep: 100 },
-  { month: "Fev", euDep: 500, euBuy: 374.49, filhaDep: 0,    filhaBuy: 209.33,  usdBuy: 6.33, pprDep: 100 },
-  { month: "Mar", euDep: 0,   euBuy: 0,      filhaDep: 0,    filhaBuy: 0,       usdBuy: 0,    pprDep: 100 },
-  { month: "Abr", euDep: 0,   euBuy: 0,      filhaDep: 0,    filhaBuy: 0,       usdBuy: 0,    pprDep: 100 },
-  { month: "Mai", euDep: 500, euBuy: 259.58, filhaDep: 0,    filhaBuy: 99.98,   usdBuy: 175.60, pprDep: 100 },
-  { month: "Jun", euDep: 600, euBuy: 179.26, filhaDep: 200,  filhaBuy: 194.56,  usdBuy: 485.98, pprDep: 100 },
-  { month: "Jul", euDep: 300, euBuy: 73.87,  filhaDep: 402,  filhaBuy: 104.96,  usdBuy: 484.17, pprDep: 100 },
-];
-// PPR: 7 subscrições confirmadas de €100/mês (Jan-Jul 2026) = €700,00 — conta 5868986, fora dos 3 extratos de corretagem.
-
-// Dinheiro investido por ano (todas as fontes) e retorno anual aproximado do PPR
-// PPR: retorno anual calculado usando os preços de subscrição mais próximos de cada
-// fronteira de ano como aproximação da cotação (não temos o fecho exato a 31/12).
-// Watchlist — itens fora da carteira, em análise (não são posições detidas)
-const WATCHLIST = [
-  { name: "Oracle Corporation", ticker: "ORCL", cat: "C", moeda: "USD", price: 135.91, tese: "AI/cloud em forte crescimento, mas dívida elevada (~$124,7bn), FCF negativo, rating baixado para BBB-" },
-  { name: "S&P Global", ticker: "SPGI", cat: "A", moeda: "USD", price: 431.26, tese: "Oligopólio de ratings/índices, correção após guidance conservador, spin-off da Mobility concluído" },
-  { name: "iShares MSCI India ETF", ticker: "INDA / IIND.L", cat: "A (base)", moeda: "USD/GBP", price: 48.55, tese: "Exposição dedicada à Índia; rating Morningstar neutro, momentum técnico fraco" },
-  { name: "Alphabet (Google)", ticker: "GOOGL", cat: "A", moeda: "USD", price: 342.09, tese: "Q2 2026 forte (+24% receita, Cloud +82%), mas subiu ~89% em 12 meses; capex 2026 elevado ($195-205bn) penaliza no curto prazo; risco regulatório UE" },
-  { name: "Meliá Hotels International", ticker: "MEL.MC", cat: "C", moeda: "EUR", price: 7.98, tese: "Cadeia hoteleira espanhola, rating Buy dos analistas, mas dívida líquida elevada (~€2,19bn negativos); dados de preço inconsistentes entre fontes, confirmar antes de agir" },
-  { name: "Sezzle Inc.", ticker: "SEZL", cat: "C", moeda: "USD", price: 117.46, tese: "BNPL fintech; subiu +158% até jul/2026 (máx. $195,71), caiu -34% num dia (6-7 ago) após Q2 apesar de bater receita e subir guidance — clássico \"sell the news\"; muito volátil (beta 1,52)" },
-  { name: "Digital Turbine", ticker: "APPS", cat: "B", moeda: "USD", price: 13.31, tese: "Plataforma de distribuição de apps móveis, turnaround em curso; receita +27% (Q1 FY27), a vender ativos não-core (AdColony) para simplificar; consenso Strong Buy, alvo $15,17" },
-  { name: "CrowdStrike Holdings", ticker: "CRWD", cat: "A", moeda: "USD", price: 434.13, tese: "Adicionada 17-09-2026 (início regra 30 dias). Cibersegurança líder, tese de IA forte (Falcon Guardian, parceiro nº1 da Nvidia), mas +100% em 2026 e ~73% sobrevalorizada segundo modelo quantitativo — qualidade A, fora de zona de entrada" },
-];
-
-const YEARLY_INVESTED = [
-  { year: "2020", amount: 3374.99, note: "PPR — Subs/Transferência (lote inicial)" },
-  { year: "2021", amount: 0, note: "sem dados disponíveis" },
-  { year: "2022", amount: 0, note: "sem dados disponíveis" },
-  { year: "2023", amount: 0, note: "sem dados disponíveis" },
-  { year: "2024", amount: 100.00, note: "PPR (1 subscrição, Nov 2024)" },
-  { year: "2025", amount: 1850.00, note: "PPR (16 subscrições)" },
-  { year: "2026", amount: 6402.00, note: "PPR (€700) + corretagem (€2.100 Eu + €3.602 Filhas)" },
-];
-
-const PPR_ANNUAL_RETURN = [
-  { year: "2025", pct: 5.26, from: "19,5366 (nov/24)", to: "20,5647 (dez/25)" },
-  { year: "2026 (YTD)", pct: 2.71, from: "20,5647 (dez/25)", to: "21,1223 (22/jul/26)" },
-];
-
-const ACTIVITY_ASSET_PL = [
-  { asset: "NOS.PT (ações)", pl: -5.38, n: 2, color: "#4EA8DE" },
-];
-
-const ACTIVITY_CLOSED = [
-{"conta":"EUR-51153667","titular":"Eu","instrumento":"Zon Multimedia","categoria":"STOCK","ticker":"NOS.PT","tipo":"BUY","volume":10.0,"dataAbertura":"2026-05-14 14:01","dataFecho":"2026-07-09 13:54","horasDetidas":1343.89,"lucroPrejuizo":-4.81},
-{"conta":"EUR-51153667","titular":"Eu","instrumento":"Zon Multimedia","categoria":"STOCK","ticker":"NOS.PT","tipo":"BUY","volume":3.0,"dataAbertura":"2026-02-24 14:17","dataFecho":"2026-07-09 13:54","horasDetidas":3239.63,"lucroPrejuizo":-0.57},
-{"conta":"EUR-53984039","titular":"Filhas","instrumento":"Ajuste (não corresponde a investimento)","categoria":"OUTRO","ticker":"—","tipo":"—","volume":null,"dataAbertura":"2026-01-26 09:24","dataFecho":"2026-02-17 07:47","horasDetidas":null,"lucroPrejuizo":-353.55},
-];
-
-function fmtHoras(h) {
-  if (h < 1) return `${Math.round(h * 60)} min`;
-  if (h < 24) return `${h.toFixed(1)} h`;
-  return `${(h / 24).toFixed(1)} dias`;
-}
-
-// Capitalização de mercado — não há fonte de dados ao vivo fiável para isto,
-// por isso são valores de partida razoáveis (conhecimento próprio), editáveis por ti.
-const CAP_SIZE_DEFAULTS = {
-  NVDA: "Mega", MA: "Mega", CDNS: "Large", BSX: "Large", ENX: "Mid",
-  VIRT: "Small", ETOR: "Small", IONQ: "Small", FVRR: "Small", FLUXO: "Small",
-  ALFEN: "Small", NVG: "Small", BYRN: "Micro",
-  ISLN: "N/A", EGLN: "N/A", SXR8A: "N/A", SXR8B: "N/A", IS0E: "N/A",
-  EUNL: "N/A", EUNLF: "N/A", VWCE: "N/A", LSMC: "N/A", PPR: "N/A", BTC: "N/A",
-};
-const CAP_SIZE_META = {
-  "Mega":  { color: "#4EA8DE", desc: ">$200bn" },
-  "Large": { color: "#2FD98A", desc: "$10-200bn" },
-  "Mid":   { color: "#E8B84B", desc: "$2-10bn" },
-  "Small": { color: "#E8734B", desc: "$300M-2bn" },
-  "Micro": { color: "#FF6B6B", desc: "<$300M" },
-  "N/A":   { color: "#8B96AC", desc: "ETF/ETC/PPR/Cripto — não aplicável" },
-};
-// Palavras-chave para deteção automática de colunas em ficheiros importados (CSV/XLSX de corretoras)
-const IMPORT_COLUMN_HINTS = {
-  symbol: ["instrumento", "posição", "symbol", "ticker", "ativo"],
-  price:  ["preço atual", "preço", "price", "cotação", "último preço"],
-  value:  ["valor", "value", "valor de mercado"],
-  volume: ["volume", "qtd", "quantidade", "shares", "qty"],
-};
-
-const STORAGE_KEY = "positions-v1";
-
-function parseNum(str) {
-  if (typeof str === "number") return str;
-  return parseFloat(String(str).replace(/\./g, "").replace(",", "."));
-}
-function fmtEUR(n, opts = {}) {
-  if (n === null || n === undefined || Number.isNaN(n)) return "—";
-  return n.toLocaleString("pt-PT", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2, ...opts });
-}
-function fmtPct(n) {
-  if (n === null || n === undefined || Number.isNaN(n)) return "—";
-  const sign = n > 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
-}
-function pctSafe(value, cost) {
-  if (!cost || cost === 0) return 0;
-  return ((value - cost) / cost) * 100;
-}
-
-const BASE_IDS = new Set(["PPR", "EUNL", "EUNLF", "VWCE", "SXR8A", "SXR8B"]);
-const DAUGHTER_IDS = new Set(["ISLN", "EGLN", "SXR8A", "IS0E", "EUNLF"]);
-const LOW_CONVICTION_IDS = new Set(["FVRR"]); // 29/07/2026: guidance cortado, compradores -20,6%, tese de substituição por IA confirmada
-const SEED_WITH_CONVICTION = SEED.map((p) => ({
-  ...p,
-  conviction: LOW_CONVICTION_IDS.has(p.id) ? "Baixa" : "Média",
-  role: BASE_IDS.has(p.id) ? "Base" : "Satélite",
-  owner: DAUGHTER_IDS.has(p.id) ? "Filha" : "Eu",
-  capSize: CAP_SIZE_DEFAULTS[p.id] || "N/A",
-}));
-const ROLE_META = {
-  "Base":     { color: "#4EA8DE", desc: "diversificado, baixa volatilidade" },
-  "Satélite": { color: "#E8734B", desc: "concentrado, alto potencial/risco" },
-};
-const OWNER_META = {
-  "Eu":    { color: "#4EA8DE", desc: "carteira própria" },
-  "Filha": { color: "#E85D9E", desc: "investimento para as filhas" },
-};
-
-export default function PortfolioDashboard() {
-  const [positions, setPositions] = useState(SEED_WITH_CONVICTION);
-  const [loaded, setLoaded] = useState(false);
-  const [sortKey, setSortKey] = useState("value");
-  const [sortDir, setSortDir] = useState("desc");
-  const [editingId, setEditingId] = useState(null);
-  const [draftValue, setDraftValue] = useState("");
-  const [saveFlash, setSaveFlash] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [importRows, setImportRows] = useState(null); // linhas lidas do ficheiro, antes de aplicar
-  const [importError, setImportError] = useState(null);
-  const [importFileName, setImportFileName] = useState(null);
-  const [activitySortKey, setActivitySortKey] = useState("dataFecho");
-  const [activitySortDir, setActivitySortDir] = useState("desc");
-  const [activityFilterTitular, setActivityFilterTitular] = useState(null);
-  const [activeTab, setActiveTab] = useState("geral");
-  const [activeOwner, setActiveOwner] = useState(null);
-  const [contributions, setContributions] = useState({ ppr: 116.67, filha: 100, eu: 100 });
-  const [assumedRates, setAssumedRates] = useState({ ppr: 4, filha: 7, eu: 7 });
-  const marqueeRef = useRef(null);
-
-  // ---- fetch live BTC/EUR price (falls back to static reference on failure) -
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur&include_24hr_change=true"
-        );
-        const data = await res.json();
-        const price = data?.bitcoin?.eur;
-        const change24h = data?.bitcoin?.eur_24h_change;
-        if (price) {
-          setPositions((prev) =>
-            prev.map((p) => {
-              if (p.id !== "BTC") return p;
-              const newValue = BTC_TOTAL_QTY * price;
-              const dailyAmt = change24h ? newValue * (change24h / (100 + change24h)) : 0;
-              return { ...p, value: newValue, dailyPct: change24h ?? 0, dailyAmt };
-            })
-          );
-        }
-      } catch (e) {
-        // fica com o valor de referência estático definido no SEED
-      }
-    })();
-  }, []);
-
-  // ---- load persisted overrides -------------------------------------------
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get(STORAGE_KEY, false);
-        if (res && res.value) {
-          const overrides = JSON.parse(res.value);
-          setPositions((prev) =>
-            prev.map((p) =>
-              overrides[p.id] !== undefined ? { ...p, ...overrides[p.id] } : p
-            )
-          );
-        }
-      } catch (e) {
-        // no saved state yet — that's fine
-      } finally {
-        setLoaded(true);
-      }
-    })();
-  }, []);
-
-  const MUTABLE_FIELDS = ["value", "conviction", "role", "owner", "capSize"];
-
-  async function persist(next) {
-    try {
-      const overrides = {};
-      next.forEach((p) => {
-        const seed = SEED_WITH_CONVICTION.find((s) => s.id === p.id);
-        if (!seed) return;
-        const diff = {};
-        let changed = false;
-        MUTABLE_FIELDS.forEach((f) => {
-          if (seed[f] !== p[f]) { diff[f] = p[f]; changed = true; }
-        });
-        if (changed) overrides[p.id] = diff;
-      });
-      await window.storage.set(STORAGE_KEY, JSON.stringify(overrides), false);
-      setSaveFlash(true);
-      setTimeout(() => setSaveFlash(false), 1200);
-    } catch (e) {
-      console.error("Falha ao guardar", e);
-    }
-  }
-
-  function updateConviction(id, conviction) {
-    const next = positions.map((p) => (p.id === id ? { ...p, conviction } : p));
-    setPositions(next);
-    persist(next);
-  }
-
-  function updateRole(id, role) {
-    const next = positions.map((p) => (p.id === id ? { ...p, role } : p));
-    setPositions(next);
-    persist(next);
-  }
-
-  function updateOwner(id, owner) {
-    const next = positions.map((p) => (p.id === id ? { ...p, owner } : p));
-    setPositions(next);
-    persist(next);
-  }
-
-  function updateField(id, field, value) {
-    const next = positions.map((p) => (p.id === id ? { ...p, [field]: value } : p));
-    setPositions(next);
-    persist(next);
-  }
-
-  function commitEdit(id) {
-    const num = parseFloat(String(draftValue).replace(",", "."));
-    if (!Number.isNaN(num) && num >= 0) {
-      const next = positions.map((p) => (p.id === id ? { ...p, value: num } : p));
-      setPositions(next);
-      persist(next);
-    }
-    setEditingId(null);
-    setDraftValue("");
-  }
-
-  function resetAll() {
-    setPositions(SEED_WITH_CONVICTION);
-    persist(SEED_WITH_CONVICTION);
-  }
-
-  // ---- Importação de ficheiros (CSV / XLSX) --------------------------------
-  function findColumnIndex(headerRow, hints) {
-    const lower = headerRow.map((h) => String(h || "").toLowerCase().trim());
-    for (const hint of hints) {
-      const idx = lower.findIndex((h) => h.includes(hint));
-      if (idx !== -1) return idx;
-    }
-    return -1;
-  }
-
-  function parseNumberLoose(v) {
-    if (typeof v === "number") return v;
-    if (!v) return NaN;
-    let s = String(v).trim().replace(/[€$£]/g, "").replace(/\s/g, "");
-    // formato europeu "1.234,56" -> "1234.56"
-    if (/,\d{1,2}$/.test(s) && s.includes(".")) s = s.replace(/\./g, "").replace(",", ".");
-    else if (/,\d{1,2}$/.test(s)) s = s.replace(",", ".");
-    return parseFloat(s);
-  }
-
-  function findBestMatch(nameOrSymbol) {
-    const needle = String(nameOrSymbol || "").toLowerCase().trim();
-    if (!needle) return null;
-    let best = null, bestScore = 0;
-    positions.forEach((p) => {
-      const candidates = [p.symbol, p.name].map((s) => String(s).toLowerCase());
-      candidates.forEach((c) => {
-        if (c === needle) { bestScore = 100; best = p; }
-        else if ((c.includes(needle) || needle.includes(c)) && needle.length > 2 && bestScore < 80) {
-          bestScore = 80; best = p;
-        }
-      });
-    });
-    return bestScore >= 60 ? { position: best, score: bestScore } : null;
-  }
-
-  function rowsFromAOA(rows) {
-    if (!rows || rows.length < 2) return [];
-    const header = rows[0];
-    const iSymbol = findColumnIndex(header, IMPORT_COLUMN_HINTS.symbol);
-    const iPrice = findColumnIndex(header, IMPORT_COLUMN_HINTS.price);
-    const iValue = findColumnIndex(header, IMPORT_COLUMN_HINTS.value);
-    const iVolume = findColumnIndex(header, IMPORT_COLUMN_HINTS.volume);
-    if (iSymbol === -1 || (iPrice === -1 && iValue === -1)) return [];
-    const out = [];
-    for (let r = 1; r < rows.length; r++) {
-      const row = rows[r];
-      if (!row || !row[iSymbol]) continue;
-      const symbol = row[iSymbol];
-      const price = iPrice !== -1 ? parseNumberLoose(row[iPrice]) : null;
-      const value = iValue !== -1 ? parseNumberLoose(row[iValue]) : null;
-      const volume = iVolume !== -1 ? parseNumberLoose(row[iVolume]) : null;
-      const match = findBestMatch(symbol);
-      out.push({ rawSymbol: symbol, price, value, volume, match, include: !!match });
-    }
-    return out;
-  }
-
-  async function handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImportError(null);
-    setImportFileName(file.name);
-    const ext = file.name.split(".").pop().toLowerCase();
-    try {
-      if (ext === "csv") {
-        const text = await file.text();
-        const parsed = Papa.parse(text, { skipEmptyLines: true });
-        setImportRows(rowsFromAOA(parsed.data));
-      } else if (ext === "xlsx" || ext === "xls") {
-        const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
-        let allRows = [];
-        wb.SheetNames.forEach((name) => {
-          const sheet = wb.Sheets[name];
-          const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
-          allRows = allRows.concat(rowsFromAOA(aoa));
-        });
-        setImportRows(allRows);
-      } else if (ext === "pdf") {
-        setImportError("Ficheiros PDF não são suportados de forma fiável aqui — exporta CSV ou Excel da corretora, se possível.");
-        setImportRows(null);
-      } else {
-        setImportError("Formato não reconhecido. Usa .csv ou .xlsx.");
-        setImportRows(null);
-      }
-    } catch (err) {
-      setImportError("Não consegui ler o ficheiro: " + err.message);
-      setImportRows(null);
-    }
-    e.target.value = "";
-  }
-
-  function toggleImportRow(idx) {
-    setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, include: !r.include } : r)));
-  }
-
-  function applyImport() {
-    if (!importRows) return;
-    const next = positions.map((p) => {
-      const row = importRows.find((r) => r.include && r.match && r.match.position.id === p.id);
-      if (!row) return p;
-      const newValue = row.value != null && !Number.isNaN(row.value)
-        ? row.value
-        : (row.price != null && row.volume != null ? row.price * row.volume : p.value);
-      return { ...p, value: newValue };
-    });
-    setPositions(next);
-    persist(next);
-    setImportRows(null);
-    setImportFileName(null);
-  }
-
-  // Modo "adicionar só novidades" — nunca atualiza posições já existentes.
-  // Cria posições novas só para linhas cujo símbolo/nome não corresponde a nada que já temos.
-  async function handleFileSelectAddOnly(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const ext = file.name.split(".").pop().toLowerCase();
-      let rows = [];
-      if (ext === "csv") {
-        const text = await file.text();
-        const parsed = Papa.parse(text, { skipEmptyLines: true });
-        rows = rowsFromAOA(parsed.data);
-      } else if (ext === "xlsx" || ext === "xls") {
-        const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
-        wb.SheetNames.forEach((name) => {
-          const aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false });
-          rows = rows.concat(rowsFromAOA(aoa));
-        });
-      } else {
-        alert("Formato não reconhecido. Usa .csv ou .xlsx.");
-        e.target.value = "";
-        return;
-      }
-      const novas = rows.filter((r) => !r.match); // sem correspondência a nenhuma posição existente
-      if (novas.length === 0) {
-        alert("Não encontrei nenhuma linha nova — todos os nomes já correspondem a posições que já tens.");
-        e.target.value = "";
-        return;
-      }
-      const created = novas.map((r, i) => ({
-        id: `custom-${Date.now()}-${i}`,
-        symbol: String(r.rawSymbol), name: String(r.rawSymbol), category: "Ações",
-        shares: r.volume != null ? r.volume : 0,
-        cost: r.value != null ? r.value : (r.price != null && r.volume != null ? r.price * r.volume : 0),
-        value: r.value != null ? r.value : (r.price != null && r.volume != null ? r.price * r.volume : 0),
-        div: 0, dailyPct: 0, dailyAmt: 0, realizedPct: null, realizedAmt: null,
-        conviction: "Média", role: "Satélite", owner: "Eu",
-      }));
-      const next = [...positions, ...created];
-      setPositions(next);
-      persist(next);
-      alert(`Adicionadas ${created.length} posições novas:\n\n${created.map((c) => c.name).join(", ")}\n\nFicaram com categoria "Ações", titular "Eu" e perfil "Satélite" por omissão — revê e ajusta na tabela.`);
-    } catch (err) {
-      alert("Não consegui ler o ficheiro: " + err.message);
-    }
-    e.target.value = "";
-  }
-
-  // ---- derived aggregates ---------------------------------------------------
-  const totals = useMemo(() => {
-    const cost = positions.reduce((s, p) => s + p.cost, 0);
-    const value = positions.reduce((s, p) => s + p.value, 0);
-    const div = positions.reduce((s, p) => s + (p.div || 0), 0);
-    const dailyAmt = positions.reduce((s, p) => s + (p.dailyAmt || 0), 0);
-    const gainAmt = value - cost;
-    const gainPct = (gainAmt / cost) * 100;
-    return { cost, value, div, dailyAmt, gainAmt, gainPct };
-  }, [positions]);
-
-  const bucketValues = useMemo(() => {
-    const ppr = positions.find((p) => p.id === "PPR")?.value || 0;
-    const filha = positions.filter((p) => p.owner === "Filha").reduce((s, p) => s + p.value, 0);
-    const eu = totals.value - ppr - filha;
-    return { ppr, filha, eu };
-  }, [positions, totals.value]);
-
-  const PROJECTION_YEARS = 20;
-  const IDADE_ATUAL = 38;
-  const MESES_ATE_51 = Math.max(0, (51 - IDADE_ATUAL) * 12); // 156 meses = 13 anos
-
-  function futureValue(pv, pmt, annualRatePct, months) {
-    const r = annualRatePct / 100 / 12;
-    if (Math.abs(r) < 1e-9) return pv + pmt * months;
-    return pv * Math.pow(1 + r, months) + pmt * ((Math.pow(1 + r, months) - 1) / r);
-  }
-
-  // PPR em duas fases fiscais: 38-50 anos (contribuição própria maior, dedução 350€),
-  // 51+ anos (contribuição própria menor, dedução 300€) — a pmt já inclui o reembolso reinvestido.
-  function futureValuePPR(pv, pmtFase1, pmtFase2, rate, monthsTotal) {
-    if (monthsTotal <= MESES_ATE_51) return futureValue(pv, pmtFase1, rate, monthsTotal);
-    const fvNaMudanca = futureValue(pv, pmtFase1, rate, MESES_ATE_51);
-    return futureValue(fvNaMudanca, pmtFase2, rate, monthsTotal - MESES_ATE_51);
-  }
-
-  const projection = useMemo(() => {
-    const pprPmtFase1 = 1750 / 12; // capital próprio (116,67) + reembolso reinvestido (29,17) = 145,83/mês total investido
-    const pprPmtFase2 = 1500 / 12; // fase 51+: total investido 125/mês
-    const buckets = [
-      { key: "ppr",   label: "PPR",                start: bucketValues.ppr,   pmt: pprPmtFase1,          rate: assumedRates.ppr,   spread: 1.5, color: "#8E6FD1" },
-      { key: "filha", label: "Ações/ETF · Filhas",   start: bucketValues.filha, pmt: contributions.filha, rate: assumedRates.filha, spread: 3.5, color: "#E85D9E" },
-      { key: "eu",    label: "Ações/ETF · Eu",      start: bucketValues.eu,    pmt: contributions.eu,    rate: assumedRates.eu,    spread: 4.0, color: "#4EA8DE" },
-    ];
-    const data = [];
-    for (let y = 0; y <= PROJECTION_YEARS; y++) {
-      const m = y * 12;
-      const row = { year: y };
-      let totalBase = 0, totalLow = 0, totalHigh = 0, totalContrib = 0;
-      buckets.forEach((b) => {
-        if (b.key === "ppr") {
-          row[b.key] = futureValuePPR(b.start, pprPmtFase1, pprPmtFase2, b.rate, m);
-          totalBase += row[b.key];
-          totalLow += futureValuePPR(b.start, pprPmtFase1, pprPmtFase2, b.rate - b.spread, m);
-          totalHigh += futureValuePPR(b.start, pprPmtFase1, pprPmtFase2, b.rate + b.spread, m);
-          totalContrib += b.start + (m <= MESES_ATE_51 ? pprPmtFase1 * m : pprPmtFase1 * MESES_ATE_51 + pprPmtFase2 * (m - MESES_ATE_51));
-        } else {
-          row[b.key] = futureValue(b.start, b.pmt, b.rate, m);
-          totalBase += row[b.key];
-          totalLow += futureValue(b.start, b.pmt, b.rate - b.spread, m);
-          totalHigh += futureValue(b.start, b.pmt, b.rate + b.spread, m);
-          totalContrib += b.start + b.pmt * m;
-        }
-      });
-      row.totalBase = totalBase;
-      row.totalLow = totalLow;
-      row.totalHigh = totalHigh;
-      row.totalContrib = totalContrib;
-      row.gains = Math.max(0, totalBase - totalContrib);
-      row.gainsLow = Math.max(0, totalLow - totalContrib);
-      row.gainsHigh = Math.max(0, totalHigh - totalContrib);
-      data.push(row);
-    }
-    return { data, buckets, final: data[PROJECTION_YEARS] };
-  }, [bucketValues, contributions, assumedRates]);
-
-
-  const byOwner = useMemo(() => {
-    const map = {};
-    positions.forEach((p) => {
-      map[p.owner] = map[p.owner] || { owner: p.owner, value: 0, cost: 0 };
-      map[p.owner].value += p.value;
-      map[p.owner].cost += p.cost;
-    });
-    return Object.values(map).map((o) => ({
-      ...o,
-      pct: (o.value / totals.value) * 100,
-      gainPct: pctSafe(o.value, o.cost),
-      color: OWNER_META[o.owner]?.color || "#999",
-      desc: OWNER_META[o.owner]?.desc || "",
-    }));
-  }, [positions, totals.value]);
-
-  const byRole = useMemo(() => {
-    const map = {};
-    positions.forEach((p) => {
-      map[p.role] = map[p.role] || { role: p.role, value: 0, cost: 0 };
-      map[p.role].value += p.value;
-      map[p.role].cost += p.cost;
-    });
-    return Object.values(map).map((r) => ({
-      ...r,
-      pct: (r.value / totals.value) * 100,
-      gainPct: pctSafe(r.value, r.cost),
-      color: ROLE_META[r.role]?.color || "#999",
-      desc: ROLE_META[r.role]?.desc || "",
-    }));
-  }, [positions, totals.value]);
-
-  const byCategory = useMemo(() => {
-    const map = {};
-    positions.forEach((p) => {
-      map[p.category] = map[p.category] || { category: p.category, value: 0, cost: 0 };
-      map[p.category].value += p.value;
-      map[p.category].cost += p.cost;
-    });
-    return Object.values(map).map((c) => ({
-      ...c,
-      pct: (c.value / totals.value) * 100,
-      gainPct: pctSafe(c.value, c.cost),
-      label: CATEGORY_META[c.category]?.label || c.category,
-      color: CATEGORY_META[c.category]?.color || "#999",
-    }));
-  }, [positions, totals.value]);
-
-  const barData = useMemo(() => {
-    return positions
-      .map((p) => ({
-        symbol: p.symbol,
-        gainPct: pctSafe(p.value, p.cost),
-      }))
-      .sort((a, b) => b.gainPct - a.gainPct);
-  }, [positions]);
-
-  // ---- Principais Movers (maiores variações do dia) -------------------------
-  const principaisMovers = useMemo(() => {
-    return [...positions]
-      .filter((p) => p.dailyPct !== 0)
-      .sort((a, b) => Math.abs(b.dailyPct) - Math.abs(a.dailyPct))
-      .slice(0, 5);
-  }, [positions]);
-
-  // ---- Treemap: Peso vs Retorno ---------------------------------------------
-  const treemapData = useMemo(() => {
-    return positions
-      .filter((p) => p.value > 0)
-      .map((p) => ({ name: p.symbol, size: p.value, gainPct: pctSafe(p.value, p.cost) }));
-  }, [positions]);
-
-  function treemapColor(gainPct) {
-    if (gainPct >= 20) return "#1F9D63";
-    if (gainPct >= 5) return "#2FD98A";
-    if (gainPct >= 0) return "#6FE3AE";
-    if (gainPct >= -10) return "#FF9B9B";
-    if (gainPct >= -20) return "#FF6B6B";
-    return "#B23A3A";
-  }
-
-  // ---- Portfolio Score --------------------------------------------------------
-  const portfolioScore = useMemo(() => {
-    const activePositions = positions.filter((p) => p.value > 0);
-    const n = activePositions.length || 1;
-    const totalVal = totals.value || 1;
-
-    // Concentração: peso da maior posição (menor peso = melhor pontuação)
-    const maxWeight = Math.max(...activePositions.map((p) => (p.value / totalVal) * 100));
-    const concentracao = Math.max(0, Math.round(100 - maxWeight * 2.2));
-
-    // Diversificação: nº de categorias distintas representadas, sobre um máximo razoável de 5
-    const categorias = new Set(activePositions.map((p) => p.category)).size;
-    const diversificacao = Math.min(100, Math.round((categorias / 5) * 100));
-
-    // Qualidade: % do valor total que está em "Base" (diversificado/estável)
-    const baseVal = activePositions.filter((p) => p.role === "Base").reduce((s, p) => s + p.value, 0);
-    const qualidade = Math.round((baseVal / totalVal) * 100);
-
-    // ROI: ganho total %, normalizado numa escala 0-100 (0% ganho = 50 pontos, +20% = 100, -20% = 0)
-    const roi = Math.max(0, Math.min(100, Math.round(50 + totals.gainPct * 2.5)));
-
-    // Drawdown: nº de posições atualmente em perda, sobre o total (menos posições em perda = melhor)
-    const emPerda = activePositions.filter((p) => pctSafe(p.value, p.cost) < 0).length;
-    const drawdown = Math.max(0, Math.round(100 - (emPerda / n) * 100));
-
-    const overall = Math.round((concentracao + diversificacao + qualidade + roi + drawdown) / 5);
-    let tier = "C — A Melhorar";
-    if (overall >= 75) tier = "A — Forte";
-    else if (overall >= 55) tier = "B — Equilibrado";
-
-    return {
-      overall, tier,
-      metrics: [
-        { label: "Concentração", value: concentracao },
-        { label: "Diversificação", value: diversificacao },
-        { label: "Qualidade (Base)", value: qualidade },
-        { label: "ROI", value: roi },
-        { label: "Drawdown", value: drawdown },
-      ],
-    };
-  }, [positions, totals]);
-
-  const sortedPositions = useMemo(() => {
-    const withGain = positions.map((p) => {
-      const gainPct = pctSafe(p.value, p.cost);
-      const weightPct = (p.value / totals.value) * 100;
-      const signal = computeSignal(gainPct, weightPct, p.conviction);
-      return { ...p, gainPct, gainAmt: p.value - p.cost, weightPct, signal };
-    });
-    let filtered = withGain;
-    if (activeCategory) filtered = filtered.filter((p) => p.category === activeCategory);
-    if (activeOwner) filtered = filtered.filter((p) => p.owner === activeOwner);
-    const dir = sortDir === "asc" ? 1 : -1;
-    return [...filtered].sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      if (typeof av === "string") return av.localeCompare(bv) * dir;
-      return (av - bv) * dir;
-    });
-  }, [positions, sortKey, sortDir, activeCategory, activeOwner, totals.value]);
-
-  function toggleSort(key) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
-  }
-
-  const isPositive = (n) => n >= 0;
-
-  // ---- Atividade de investimento: cálculos derivados ------------------------
-  const activityTotals = useMemo(() => {
-    const euDep = ACTIVITY_MONTHLY.reduce((s, m) => s + m.euDep, 0);
-    const filhaDep = ACTIVITY_MONTHLY.reduce((s, m) => s + m.filhaDep, 0);
-    const pprDep = ACTIVITY_MONTHLY.reduce((s, m) => s + m.pprDep, 0);
-    const euBuy = ACTIVITY_MONTHLY.reduce((s, m) => s + m.euBuy, 0);
-    const filhaBuy = ACTIVITY_MONTHLY.reduce((s, m) => s + m.filhaBuy, 0);
-    const usdBuy = ACTIVITY_MONTHLY.reduce((s, m) => s + m.usdBuy, 0);
-    const totalDep = euDep + filhaDep + pprDep;
-    const totalBuy = euBuy + filhaBuy;
-    const totalPL = ACTIVITY_ASSET_PL.reduce((s, a) => s + a.pl, 0) - 353.55;
-    return { euDep, filhaDep, pprDep, euBuy, filhaBuy, usdBuy, totalDep, totalBuy, totalPL };
-  }, []);
-
-  const sortedActivityClosed = useMemo(() => {
-    let rows = activityFilterTitular ? ACTIVITY_CLOSED.filter((c) => c.titular === activityFilterTitular) : ACTIVITY_CLOSED;
-    const dir = activitySortDir === "asc" ? 1 : -1;
-    return [...rows].sort((a, b) => {
-      const av = a[activitySortKey], bv = b[activitySortKey];
-      if (typeof av === "string") return av.localeCompare(bv) * dir;
-      return (av - bv) * dir;
-    });
-  }, [activitySortKey, activitySortDir, activityFilterTitular]);
-
-  function toggleActivitySort(key) {
-    if (activitySortKey === key) setActivitySortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setActivitySortKey(key); setActivitySortDir("desc"); }
-  }
-
-  return (
-    <div className="pd-root">
-      <style>{`
-        .pd-root {
-          --bg: #0A0E1A;
-          --panel: #121828;
-          --panel-alt: #182036;
-          --border: #232C42;
-          --text: #EAEEF6;
-          --muted: #8B96AC;
-          --pos: #2FD98A;
-          --neg: #FF6B6B;
-          --gold: #C9A24B;
-          --blue: #4EA8DE;
-          --purple: #8E6FD1;
-          --pink: #E85D9E;
-          background: var(--bg);
-          color: var(--text);
-          font-family: 'Inter', system-ui, sans-serif;
-          border-radius: 18px;
-          padding: 0;
-          overflow: hidden;
-          min-height: 100%;
-        }
-        .pd-mono { font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; }
-        .pd-display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
-
-        .pd-marquee-wrap {
-          border-bottom: 1px solid var(--border);
-          background: #080B14;
-          overflow: hidden;
-          white-space: nowrap;
-          position: relative;
-          padding: 9px 0;
-        }
-        .pd-marquee-track {
-          display: inline-flex;
-          animation: pd-scroll 42s linear infinite;
-        }
-        .pd-root:hover .pd-marquee-track { animation-play-state: paused; }
-        @keyframes pd-scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        .pd-tick {
-          display: inline-flex;
-          align-items: baseline;
-          gap: 6px;
-          padding: 0 18px;
-          font-size: 12.5px;
-          letter-spacing: 0.02em;
-        }
-        .pd-tick + .pd-tick { border-left: 1px solid var(--border); }
-
-        .pd-header {
-          padding: 22px 26px 18px 26px;
-          border-bottom: 1px solid var(--border);
-        }
-        .pd-eyebrow {
-          color: var(--gold);
-          font-size: 11px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          font-weight: 600;
-        }
-        .pd-title {
-          font-size: 26px;
-          font-weight: 600;
-          margin-top: 4px;
-          letter-spacing: -0.01em;
-        }
-
-        .pd-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1px;
-          background: var(--border);
-          border-bottom: 1px solid var(--border);
-        }
-        @media (max-width: 780px) {
-          .pd-summary-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        .pd-summary-cell {
-          background: var(--panel);
-          padding: 18px 22px;
-        }
-        .pd-summary-label {
-          font-size: 11px;
-          color: var(--muted);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          margin-bottom: 8px;
-        }
-        .pd-summary-value {
-          font-size: 22px;
-          font-weight: 600;
-        }
-        .pd-summary-sub {
-          font-size: 12.5px;
-          margin-top: 4px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .pd-body {
-          padding: 24px 26px 30px 26px;
-          display: grid;
-          grid-template-columns: 1.15fr 1fr;
-          gap: 20px;
-        }
-        @media (max-width: 900px) {
-          .pd-body { grid-template-columns: 1fr; }
-        }
-
-        .pd-card {
-          background: var(--panel);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          padding: 18px 20px;
-        }
-        .pd-card-title {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text);
-          margin-bottom: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .pd-card-hint { font-size: 11px; color: var(--muted); font-weight: 400; }
-
-        .pd-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-        .pd-legend-row {
-          display: flex; align-items: center; justify-content: space-between;
-          font-size: 12.5px; cursor: pointer; padding: 4px 6px; border-radius: 6px;
-          transition: background 0.15s ease;
-        }
-        .pd-legend-row:hover { background: var(--panel-alt); }
-        .pd-legend-row.active { background: var(--panel-alt); }
-        .pd-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-
-        table.pd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-        .pd-table th {
-          text-align: right; font-weight: 500; color: var(--muted);
-          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
-          padding: 8px 10px; cursor: pointer; user-select: none; white-space: nowrap;
-          border-bottom: 1px solid var(--border);
-        }
-        .pd-table th:first-child, .pd-table td:first-child { text-align: left; }
-        .pd-table td { text-align: right; padding: 9px 10px; border-bottom: 1px solid #1A2132; white-space: nowrap; }
-        .pd-table td:first-child { white-space: normal; }
-        .pd-table tbody tr:hover { background: var(--panel-alt); }
-        .pd-th-inner { display: inline-flex; align-items: center; gap: 3px; }
-
-        .pd-editable {
-          background: transparent; border: 1px dashed transparent; border-radius: 5px;
-          padding: 2px 6px; cursor: text; color: var(--text);
-        }
-        .pd-editable:hover { border-color: var(--muted); }
-        .pd-editable-input {
-          background: var(--panel-alt); border: 1px solid var(--gold); border-radius: 5px;
-          padding: 2px 6px; width: 76px; color: var(--text); font-family: inherit; font-size: inherit; text-align: right;
-        }
-
-        .pd-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .pd-btn {
-          display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
-          background: var(--panel-alt); border: 1px solid var(--border); color: var(--text);
-          padding: 6px 12px; border-radius: 8px; cursor: pointer;
-        }
-        .pd-btn:hover { border-color: var(--gold); }
-        .pd-save-flash { color: var(--pos); font-size: 11.5px; display: flex; align-items: center; gap: 4px; }
-
-        .pd-import-error {
-          background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.4); color: var(--neg);
-          border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 12px;
-        }
-        .pd-import-preview {
-          background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px;
-          padding: 14px 16px; margin-bottom: 14px;
-        }
-        .pd-import-preview-title { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
-        .pd-import-actions { display: flex; gap: 8px; margin-top: 12px; }
-
-        .pd-footnote { font-size: 11px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
-
-        .pd-select {
-          background: var(--panel-alt); border: 1px solid var(--border); color: var(--text);
-          font-family: inherit; font-size: 11.5px; border-radius: 6px; padding: 3px 5px; cursor: pointer;
-        }
-        .pd-select:hover { border-color: var(--gold); }
-
-        .pd-signal {
-          display: inline-flex; align-items: center; font-size: 11px; font-weight: 600;
-          padding: 3px 9px 3px 7px; border-radius: 999px; border: 1px solid; cursor: default;
-          white-space: nowrap;
-        }
-
-        .pd-formula-box {
-          margin-top: 18px; padding: 14px 16px; background: var(--panel-alt);
-          border: 1px solid var(--border); border-radius: 10px; font-size: 11.5px; color: var(--muted); line-height: 1.7;
-        }
-        .pd-formula-box b { color: var(--text); }
-
-        .pd-proj-inputs {
-          display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 4px;
-        }
-        @media (max-width: 780px) { .pd-proj-inputs { grid-template-columns: 1fr; } }
-        .pd-proj-input-group {
-          background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
-        }
-        .pd-proj-input-label {
-          font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center;
-        }
-        .pd-proj-input-row {
-          display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted);
-        }
-        .pd-num-input {
-          width: 64px; background: var(--panel); border: 1px solid var(--border); color: var(--text);
-          border-radius: 6px; padding: 3px 6px; font-family: inherit; font-size: 12px; text-align: right;
-        }
-        .pd-num-input:focus { border-color: var(--gold); outline: none; }
-        .pd-proj-input-hint { margin-top: 8px; font-size: 10.5px; color: var(--muted); }
-
-        .pd-proj-summary {
-          display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border);
-          border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 18px;
-        }
-        @media (max-width: 1000px) { .pd-proj-summary { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 640px) { .pd-proj-summary { grid-template-columns: repeat(2, 1fr); } }
-        .pd-proj-summary-cell { background: var(--panel-alt); padding: 12px 14px; }
-      `}</style>
-
-      {/* Ticker tape */}
-      <div className="pd-marquee-wrap pd-mono">
-        <div className="pd-marquee-track" ref={marqueeRef}>
-          {[...positions, ...positions].map((p, i) => (
-            <span className="pd-tick" key={p.id + i} title={p.name}>
-              <span style={{ color: "var(--muted)" }}>{p.symbol}</span>
-              <span style={{ color: isPositive(p.dailyPct) ? "var(--pos)" : "var(--neg)" }}>
-                {fmtPct(p.dailyPct)}
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Header */}
-      <div className="pd-header">
-        <div className="pd-eyebrow">Painel de Controlo · Carteira</div>
-        <div className="pd-title pd-display">Visão Geral do Portefólio</div>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, padding: "0 26px", borderBottom: "1px solid var(--border)", overflowX: "auto" }}>
-        {[
-          { key: "geral", label: "Visão Geral" },
-          { key: "carteira", label: "Carteira" },
-          { key: "dividendos", label: "Dividendos" },
-          { key: "fiscal", label: "Fiscal" },
-          { key: "analise", label: "Análise" },
-        ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              padding: "12px 16px", fontSize: 13, fontFamily: "inherit",
-              color: activeTab === t.key ? "var(--gold)" : "var(--muted)",
-              borderBottom: activeTab === t.key ? "2px solid var(--gold)" : "2px solid transparent",
-              fontWeight: activeTab === t.key ? 600 : 400,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "geral" && (
-      <>
-      {/* Summary strip */}
-      <div className="pd-summary-grid">
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Valor de mercado</div>
-          <div className="pd-summary-value pd-mono">{fmtEUR(totals.value)}</div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>Custo: {fmtEUR(totals.cost)}</div>
-        </div>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Ganho total não realizado</div>
-          <div className="pd-summary-value pd-mono" style={{ color: isPositive(totals.gainAmt) ? "var(--pos)" : "var(--neg)" }}>
-            {fmtEUR(totals.gainAmt, { signDisplay: "always" })}
-          </div>
-          <div className="pd-summary-sub" style={{ color: isPositive(totals.gainPct) ? "var(--pos)" : "var(--neg)" }}>
-            {isPositive(totals.gainPct) ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-            {fmtPct(totals.gainPct)}
-          </div>
-        </div>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Variação diária (reportada)</div>
-          <div className="pd-summary-value pd-mono" style={{ color: isPositive(totals.dailyAmt) ? "var(--pos)" : "var(--neg)" }}>
-            {fmtEUR(totals.dailyAmt, { signDisplay: "always" })}
-          </div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>soma dos movimentos do dia</div>
-        </div>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Dividendos recebidos</div>
-          <div className="pd-summary-value pd-mono">{fmtEUR(totals.div)}</div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>ganho realizado, líquido de fonte</div>
-        </div>
-      </div>
-
-      {/* ================= ANÁLISE (inspirado no SharpYield) ================= */}
-      <div style={{ padding: "20px 26px 0 26px", display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 20 }}>
-        {/* Portfolio Score */}
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Portfolio Score
-            <span className="pd-card-hint">{portfolioScore.tier}</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: "50%", flexShrink: 0,
-              background: `conic-gradient(${portfolioScore.overall >= 75 ? "#2FD98A" : portfolioScore.overall >= 55 ? "#C9A24B" : "#FF6B6B"} ${portfolioScore.overall * 3.6}deg, var(--panel-alt) 0deg)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <div style={{ width: 62, height: 62, borderRadius: "50%", background: "var(--panel)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-                <div className="pd-mono" style={{ fontSize: 20, fontWeight: 700 }}>{portfolioScore.overall}</div>
-                <div style={{ fontSize: 8, color: "var(--muted)" }}>/100</div>
-              </div>
-            </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
-              {portfolioScore.metrics.map((m) => (
-                <div key={m.label}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, marginBottom: 2 }}>
-                    <span style={{ color: "var(--muted)" }}>{m.label}</span>
-                    <span className="pd-mono" style={{ color: "var(--text)" }}>{m.value}</span>
-                  </div>
-                  <div style={{ height: 4, background: "var(--panel-alt)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ width: `${m.value}%`, height: "100%", background: m.value >= 60 ? "var(--pos)" : m.value >= 35 ? "var(--gold)" : "var(--neg)", borderRadius: 2 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="pd-footnote">Cálculo próprio a partir dos teus dados (concentração, diversificação por classe, peso em Base, ROI, % de posições em perda) — não é comparável ao score de nenhuma app externa.</div>
-        </div>
-
-        {/* Principais Movers */}
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Principais Movers
-            <span className="pd-card-hint">maior variação diária</span>
-          </div>
-          {principaisMovers.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--muted)", padding: "20px 0" }}>Sem dados de variação diária disponíveis — atualiza os preços para veres os movers aqui.</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {principaisMovers.map((p) => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "var(--panel-alt)", borderRadius: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="pd-mono" style={{ fontWeight: 700, fontSize: 12.5 }}>{p.symbol}</span>
-                    <span style={{ fontSize: 10.5, color: "var(--muted)" }}>{p.name}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="pd-mono" style={{ fontSize: 11, color: "var(--muted)" }}>{fmtEUR(p.dailyAmt, { signDisplay: "always" })}</span>
-                    <span className="pd-mono" style={{ fontSize: 12.5, fontWeight: 700, color: isPositive(p.dailyPct) ? "var(--pos)" : "var(--neg)" }}>{fmtPct(p.dailyPct)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Peso vs Retorno — mapa construído em CSS (sem depender do Treemap do Recharts) */}
-      <div style={{ padding: "20px 26px 0 26px" }}>
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Peso vs Retorno
-            <span className="pd-card-hint">tamanho = peso na carteira · cor = ganho/perda</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 3, minHeight: 220 }}>
-            {[...treemapData].sort((a, b) => b.size - a.size).map((d, idx) => (
-              <div
-                key={`${d.name}-${idx}`}
-                title={`${d.name}: ${fmtEUR(d.size)} (${d.gainPct > 0 ? "+" : ""}${d.gainPct.toFixed(2)}%)`}
-                style={{
-                  flexGrow: d.size, flexBasis: `${Math.max(60, Math.sqrt(d.size) * 8)}px`,
-                  height: 90, background: treemapColor(d.gainPct), borderRadius: 4,
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  cursor: "default",
-                }}
-              >
-                <span className="pd-mono" style={{ fontSize: 11, fontWeight: 700, color: "#0A0E1A" }}>{d.name}</span>
-                <span className="pd-mono" style={{ fontSize: 10, color: "#0A0E1A" }}>{d.gainPct > 0 ? "+" : ""}{d.gainPct.toFixed(0)}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      </>
-      )}
-
-      {activeTab === "carteira" && (
-      <>
-      <div className="pd-body">
-        {/* Left: table */}
-        <div className="pd-card" style={{ gridColumn: "1 / 2" }}>
-          <div className="pd-toolbar">
-            <div className="pd-card-title" style={{ marginBottom: 0 }}>
-              Posições
-              <span className="pd-card-hint">clica no valor de mercado para editar</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {saveFlash && <span className="pd-save-flash"><Save size={12} /> guardado</span>}
-              <label className="pd-btn" style={{ cursor: "pointer" }}>
-                <Upload size={12} /> importar ficheiro
-                <input type="file" accept=".csv,.xlsx,.xls,.pdf" onChange={handleFileSelect} style={{ display: "none" }} />
-              </label>
-              <label className="pd-btn" style={{ cursor: "pointer" }}>
-                + adicionar só novidades
-                <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileSelectAddOnly} style={{ display: "none" }} />
-              </label>
-              <button className="pd-btn" onClick={resetAll}><RotateCcw size={12} /> repor</button>
-            </div>
-          </div>
-
-          {importError && (
-            <div className="pd-import-error">{importError}</div>
-          )}
-
-          {importRows && (
-            <div className="pd-import-preview">
-              <div className="pd-import-preview-title">
-                Pré-visualização — {importFileName} ({importRows.filter((r) => r.match).length} de {importRows.length} linhas reconhecidas)
-              </div>
-              <table className="pd-table pd-mono">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th style={{ textAlign: "left" }}>No ficheiro</th>
-                    <th style={{ textAlign: "left" }}>Corresponde a</th>
-                    <th>Valor atual</th>
-                    <th>Novo valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importRows.map((r, i) => (
-                    <tr key={i} style={{ opacity: r.match ? 1 : 0.4 }}>
-                      <td><input type="checkbox" checked={r.include} disabled={!r.match} onChange={() => toggleImportRow(i)} /></td>
-                      <td style={{ textAlign: "left" }}>{r.rawSymbol}</td>
-                      <td style={{ textAlign: "left", color: r.match ? "var(--pos)" : "var(--neg)" }}>
-                        {r.match ? r.match.position.symbol : "sem correspondência"}
-                      </td>
-                      <td style={{ color: "var(--muted)" }}>{r.match ? fmtEUR(r.match.position.value) : "—"}</td>
-                      <td>{fmtEUR(r.value != null && !Number.isNaN(r.value) ? r.value : (r.price && r.volume ? r.price * r.volume : null))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="pd-import-actions">
-                <button className="pd-btn" onClick={applyImport}>Aplicar atualização</button>
-                <button className="pd-btn" onClick={() => { setImportRows(null); setImportFileName(null); }}>Cancelar</button>
-              </div>
-              <div className="pd-footnote">A deteção de colunas e a correspondência de nomes é automática mas aproximada — confirma as linhas antes de aplicar.</div>
-            </div>
-          )}
-
-          <div style={{ overflowX: "auto" }}>
-            <table className="pd-table pd-mono">
-              <thead>
-                <tr>
-                  <th onClick={() => toggleSort("symbol")}><span className="pd-th-inner">Símbolo {sortKey === "symbol" && (sortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleSort("shares")}><span className="pd-th-inner">Qtd {sortKey === "shares" && (sortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleSort("cost")}><span className="pd-th-inner">Custo {sortKey === "cost" && (sortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleSort("value")}><span className="pd-th-inner">Valor {sortKey === "value" && (sortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleSort("dailyPct")}><span className="pd-th-inner">Dia % {sortKey === "dailyPct" && (sortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleSort("gainPct")}><span className="pd-th-inner">Total % {sortKey === "gainPct" && (sortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th>Titular</th>
-                  <th>Perfil</th>
-                  <th>Capitalização</th>
-                  <th>Convicção</th>
-                  <th>Sinal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedPositions.map((p) => (
-                  <tr key={p.id}>
-                    <td style={{ color: "var(--text)" }}>
-                      {p.symbol}
-                      <div style={{ color: "var(--muted)", fontSize: 10, fontFamily: "Inter, sans-serif", whiteSpace: "normal", maxWidth: 170, lineHeight: 1.4 }}>
-                        {p.name} <span style={{ opacity: 0.6 }}>· {CATEGORY_META[p.category]?.label}</span>
-                      </div>
-                      {!!p.realizedAmt && (
-                        <div style={{ fontSize: 10, marginTop: 3, color: p.realizedAmt >= 0 ? "var(--pos)" : "var(--neg)" }}>
-                          Realizado: {fmtEUR(p.realizedAmt, { signDisplay: "always" })} ({fmtPct(p.realizedPct)})
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ color: "var(--muted)" }}>
-                      {p.shares === 0 ? "—" : p.shares % 1 === 0 ? p.shares : p.shares.toFixed(p.shares < 1 ? 8 : 4)}
-                    </td>
-                    <td style={{ color: "var(--muted)" }}>{fmtEUR(p.cost)}</td>
-                    <td>
-                      {editingId === p.id ? (
-                        <input
-                          autoFocus
-                          className="pd-editable-input"
-                          value={draftValue}
-                          onChange={(e) => setDraftValue(e.target.value)}
-                          onBlur={() => commitEdit(p.id)}
-                          onKeyDown={(e) => e.key === "Enter" && commitEdit(p.id)}
-                        />
-                      ) : (
-                        <span
-                          className="pd-editable"
-                          onClick={() => { setEditingId(p.id); setDraftValue(String(p.value).replace(".", ",")); }}
-                        >
-                          {fmtEUR(p.value)}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ color: isPositive(p.dailyPct) ? "var(--pos)" : "var(--neg)" }}>{fmtPct(p.dailyPct)}</td>
-                    <td style={{ color: isPositive(p.gainPct) ? "var(--pos)" : "var(--neg)" }}>{fmtPct(p.gainPct)}</td>
-                    <td>
-                      <select
-                        className="pd-select"
-                        value={p.owner}
-                        onChange={(e) => updateOwner(p.id, e.target.value)}
-                        style={{ color: OWNER_META[p.owner]?.color }}
-                      >
-                        <option value="Eu">Eu</option>
-                        <option value="Filha">Filhas</option>
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="pd-select"
-                        value={p.role}
-                        onChange={(e) => updateRole(p.id, e.target.value)}
-                        style={{ color: ROLE_META[p.role]?.color }}
-                      >
-                        <option value="Base">Base</option>
-                        <option value="Satélite">Satélite</option>
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="pd-select"
-                        value={p.capSize}
-                        onChange={(e) => updateField(p.id, "capSize", e.target.value)}
-                        style={{ color: CAP_SIZE_META[p.capSize]?.color }}
-                        title={CAP_SIZE_META[p.capSize]?.desc}
-                      >
-                        {Object.keys(CAP_SIZE_META).map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="pd-select"
-                        value={p.conviction}
-                        onChange={(e) => updateConviction(p.id, e.target.value)}
-                      >
-                        {CONVICTION_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </td>
-                    <td>
-                      <span className="pd-signal" title={p.signal.reasons.join(" · ")} style={{ color: p.signal.color, borderColor: p.signal.color }}>
-                        <span className="pd-dot" style={{ background: p.signal.color, marginRight: 6 }} />
-                        {p.signal.label}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="pd-footnote">
-            Edita o "Valor" de qualquer posição para simular uma atualização de preço — os totais, o gráfico de ganhos
-            e a alocação por classe recalculam automaticamente. Os valores ficam guardados no teu dispositivo.
-          </div>
-
-          <div className="pd-formula-box">
-            <b>Como o "Sinal" é calculado</b> — não é uma previsão de mercado, é a soma de 3 critérios que tu controlas:
-            desempenho não realizado (+2 a −2), a tua <b>Convicção</b> na tese (Alta +2 / Média 0 / Baixa −2), e uma penalização
-            de −1 se a posição pesar 8%+ da carteira (concentração = risco). Soma ≥ 2 → <b style={{ color: "#2FD98A" }}>Reforçar</b>;
-            soma ≤ −2 → <b style={{ color: "#FF6B6B" }}>Rever/Vender</b>; caso contrário → <b style={{ color: "#E8B84B" }}>Manter</b>.
-            Passa o rato sobre um sinal para ver a razão exata. Ajusta a tua Convicção sempre que a tese de investimento mudar —
-            o sinal é só um espelho da tua própria análise, não substitui pesquisa sobre a empresa/fundo nem aconselhamento financeiro.
-          </div>
-
-          <div className="pd-card" style={{ marginTop: 20 }}>
-            <div className="pd-card-title">
-              Histórico de transações · BTC
-              <span className="pd-card-hint">preço BTC/EUR em tempo real (CoinGecko), quando disponível</span>
-            </div>
-            <table className="pd-table pd-mono">
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left" }}>Data e hora</th>
-                  <th>Tipo</th>
-                  <th>Qtd</th>
-                  <th>Saldo após</th>
-                </tr>
-              </thead>
-              <tbody>
-                {BTC_TRANSACTIONS.map((t, i) => (
-                  <tr key={i}>
-                    <td style={{ textAlign: "left", color: "var(--muted)" }}>{t.date}</td>
-                    <td style={{ color: t.type === "Airdrop" ? "var(--gold)" : "var(--pos)" }}>{t.type}</td>
-                    <td style={{ color: "var(--text)" }}>+{t.amount.toFixed(8)}</td>
-                    <td style={{ color: "var(--muted)" }}>{t.balance.toFixed(8)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="pd-footnote">
-              Total acumulado: <b style={{ color: "var(--text)" }}>{BTC_TOTAL_QTY.toFixed(8)} BTC</b>. Custo total assumido: <b style={{ color: "var(--text)" }}>€1.200,00</b> (indicado por ti — os depósitos e airdrops não têm preço de compra explícito no extrato).
-            </div>
-          </div>
-        </div>
-
-        {/* Right: charts */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Meu vs. Filhas
-              <span className="pd-card-hint">clica para filtrar a tabela</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 130, height: 130, flexShrink: 0 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={byOwner} dataKey="value" nameKey="owner" innerRadius={38} outerRadius={62} paddingAngle={3} stroke="none">
-                      {byOwner.map((o) => (
-                        <Cell key={o.owner} fill={o.color} opacity={activeOwner && activeOwner !== o.owner ? 0.25 : 1} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="pd-legend" style={{ flex: 1, marginTop: 0 }}>
-                {byOwner.sort((a, b) => b.value - a.value).map((o) => (
-                  <div
-                    key={o.owner}
-                    className={"pd-legend-row" + (activeOwner === o.owner ? " active" : "")}
-                    onClick={() => setActiveOwner(activeOwner === o.owner ? null : o.owner)}
-                  >
-                    <span>
-                      <span className="pd-dot" style={{ background: o.color }} />
-                      {o.owner === "Filha" ? "Filhas" : "Eu"}
-                      <div style={{ fontSize: 10, color: "var(--muted)", marginLeft: 16 }}>{fmtEUR(o.value)}</div>
-                    </span>
-                    <span className="pd-mono" style={{ color: "var(--muted)" }}>{o.pct.toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Base segura vs. Satélite de risco
-              <span className="pd-card-hint">edita o "Perfil" na tabela</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 130, height: 130, flexShrink: 0 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={byRole} dataKey="value" nameKey="role" innerRadius={38} outerRadius={62} paddingAngle={3} stroke="none">
-                      {byRole.map((r) => <Cell key={r.role} fill={r.color} />)}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="pd-legend" style={{ flex: 1, marginTop: 0 }}>
-                {byRole.sort((a, b) => b.value - a.value).map((r) => (
-                  <div key={r.role} className="pd-legend-row" style={{ cursor: "default" }}>
-                    <span>
-                      <span className="pd-dot" style={{ background: r.color }} />
-                      {r.role}
-                      <div style={{ fontSize: 10, color: "var(--muted)", marginLeft: 16 }}>{r.desc}</div>
-                    </span>
-                    <span className="pd-mono" style={{ color: "var(--muted)" }}>{r.pct.toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">Alocação por classe de ativo</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 130, height: 130, flexShrink: 0 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={byCategory}
-                      dataKey="value"
-                      nameKey="category"
-                      innerRadius={38}
-                      outerRadius={62}
-                      paddingAngle={3}
-                      stroke="none"
-                    >
-                      {byCategory.map((c) => (
-                        <Cell key={c.category} fill={c.color} opacity={activeCategory && activeCategory !== c.category ? 0.25 : 1} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="pd-legend" style={{ flex: 1, marginTop: 0 }}>
-                {byCategory.sort((a, b) => b.value - a.value).map((c) => (
-                  <div
-                    key={c.category}
-                    className={"pd-legend-row" + (activeCategory === c.category ? " active" : "")}
-                    onClick={() => setActiveCategory(activeCategory === c.category ? null : c.category)}
-                  >
-                    <span><span className="pd-dot" style={{ background: c.color }} />{c.label}</span>
-                    <span className="pd-mono" style={{ color: "var(--muted)" }}>{c.pct.toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">Ganho total (%) por posição</div>
-            <div style={{ width: "100%", height: Math.max(460, barData.length * 26) }}>
-              <ResponsiveContainer>
-                <BarChart data={barData} layout="vertical" margin={{ left: 6, right: 26, top: 4, bottom: 4 }}>
-                  <CartesianGrid horizontal={false} stroke="#1A2132" />
-                  <XAxis type="number" tick={{ fill: "#8B96AC", fontSize: 10 }} axisLine={{ stroke: "#232C42" }} tickLine={false} />
-                  <YAxis dataKey="symbol" type="category" width={90} interval={0} tick={{ fill: "#EAEEF6", fontSize: 10.5 }} axisLine={{ stroke: "#232C42" }} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: "#182036", border: "1px solid #232C42", borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: "#EAEEF6" }}
-                    formatter={(v) => [`${v.toFixed(2)}%`, "Ganho total"]}
-                  />
-                  <Bar dataKey="gainPct" radius={[0, 4, 4, 0]} barSize={16}>
-                    {barData.map((d) => (
-                      <Cell key={d.symbol} fill={d.gainPct >= 0 ? "#2FD98A" : "#FF6B6B"} />
-                    ))}
-                    <LabelList dataKey="gainPct" position="right" formatter={(v) => `${v > 0 ? "+" : ""}${v.toFixed(0)}%`} style={{ fill: "#8B96AC", fontSize: 9.5 }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </div>
-      </>
-      )}
-
-      {activeTab === "analise" && (
-      <>
-      {/* Projeção a 20 anos */}
-      <div style={{ padding: "0 26px 30px 26px" }}>
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Projeção a 20 anos
-            <span className="pd-card-hint">cenário ilustrativo — não é uma promessa de retorno</span>
-          </div>
-
-          <div className="pd-proj-inputs">
-            {projection.buckets.map((b) => (
-              <div key={b.key} className="pd-proj-input-group">
-                <div className="pd-proj-input-label"><span className="pd-dot" style={{ background: b.color }} />{b.label}</div>
-                {b.key === "ppr" ? (
-                  <>
-                    <div className="pd-proj-input-row"><label>Fase 38-50 anos</label><span className="pd-mono" style={{ color: "var(--text)" }}>145,83€/mês</span></div>
-                    <div className="pd-proj-input-row"><label>Fase 51+ anos</label><span className="pd-mono" style={{ color: "var(--text)" }}>125,00€/mês</span></div>
-                    <div className="pd-proj-input-row">
-                      <label>rendimento assumido %/ano</label>
-                      <input
-                        type="number"
-                        className="pd-num-input"
-                        value={assumedRates.ppr}
-                        step={0.5}
-                        onChange={(e) => setAssumedRates((r) => ({ ...r, ppr: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div className="pd-proj-input-hint">valores já incluem o reembolso de IRS reinvestido (350€ ou 300€/ano, consoante a fase)</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="pd-proj-input-row">
-                      <label>€/mês</label>
-                      <input
-                        type="number"
-                        className="pd-num-input"
-                        value={contributions[b.key]}
-                        min={0}
-                        onChange={(e) => setContributions((c) => ({ ...c, [b.key]: Math.max(0, Number(e.target.value)) }))}
-                      />
-                    </div>
-                    <div className="pd-proj-input-row">
-                      <label>rendimento assumido %/ano</label>
-                      <input
-                        type="number"
-                        className="pd-num-input"
-                        value={assumedRates[b.key]}
-                        step={0.5}
-                        onChange={(e) => setAssumedRates((r) => ({ ...r, [b.key]: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div className="pd-proj-input-hint">início: {fmtEUR(b.start)}</div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ width: "100%", height: 320, marginTop: 18 }}>
-            <ResponsiveContainer>
-              <ComposedChart data={projection.data} margin={{ left: 4, right: 12, top: 6, bottom: 4 }}>
-                <CartesianGrid stroke="#1A2132" />
-                <XAxis dataKey="year" tickFormatter={(y) => `ano ${y}`} tick={{ fill: "#8B96AC", fontSize: 10.5 }} axisLine={{ stroke: "#232C42" }} tickLine={false} />
-                <YAxis tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} tick={{ fill: "#8B96AC", fontSize: 10.5 }} axisLine={{ stroke: "#232C42" }} tickLine={false} width={54} />
-                <Tooltip
-                  contentStyle={{ background: "#182036", border: "1px solid #232C42", borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: "#EAEEF6" }}
-                  labelFormatter={(y) => `Ano ${y}`}
-                  formatter={(v, name) => [fmtEUR(v), name]}
-                />
-                <Area type="monotone" dataKey="totalContrib" stackId="total" stroke="none" fill="#4EA8DE" fillOpacity={0.55} name="€ próprios investidos" />
-                <Area type="monotone" dataKey="gains" stackId="total" stroke="none" fill="#2FD98A" fillOpacity={0.55} name="Retorno possível (cenário moderado)" />
-                <Line type="monotone" dataKey="totalHigh" stroke="#C9A24B" strokeDasharray="4 3" strokeWidth={1.5} dot={false} name="Total · cenário otimista" />
-                <Line type="monotone" dataKey="totalLow" stroke="#8B96AC" strokeDasharray="4 3" strokeWidth={1.5} dot={false} name="Total · cenário conservador" />
-                <Legend wrapperStyle={{ fontSize: 11, color: "#8B96AC" }} />
-              </ComposedChart>
-            </ResponsiveContainer>
-
-          </div>
-
-          <div className="pd-proj-summary">
-            {projection.buckets.map((b) => (
-              <div key={b.key} className="pd-proj-summary-cell">
-                <div className="pd-summary-label" style={{ color: b.color }}>{b.label} — ano 20</div>
-                <div className="pd-summary-value pd-mono">{fmtEUR(projection.final[b.key])}</div>
-              </div>
-            ))}
-            <div className="pd-proj-summary-cell">
-              <div className="pd-summary-label" style={{ color: "#4EA8DE" }}>€ próprios investidos</div>
-              <div className="pd-summary-value pd-mono" style={{ color: "#4EA8DE" }}>{fmtEUR(projection.final.totalContrib)}</div>
-            </div>
-            <div className="pd-proj-summary-cell">
-              <div className="pd-summary-label" style={{ color: "var(--pos)" }}>Retorno possível (moderado)</div>
-              <div className="pd-summary-value pd-mono" style={{ color: "var(--pos)" }}>{fmtEUR(projection.final.gains)}</div>
-            </div>
-            <div className="pd-proj-summary-cell">
-              <div className="pd-summary-label">Total projetado (moderado)</div>
-              <div className="pd-summary-value pd-mono">{fmtEUR(projection.final.totalBase)}</div>
-            </div>
-          </div>
-
-          <div className="pd-footnote" style={{ marginTop: 14 }}>
-            No gráfico: a área azul é o dinheiro que tu próprio vais colocar (capital investido, sem juros); a área verde por
-            cima é o retorno possível gerado pelo juro composto, no cenário moderado. As duas linhas tracejadas (dourada e
-            cinzenta) mostram o total da carteira nos cenários otimista e conservador, para dares conta da incerteza. Cálculo:
-            juro composto mensal sobre o valor atual de cada saco + contribuições mensais constantes, a uma taxa
-            anual que tu defines acima (padrão: PPR 4%, ações/ETF 7% — aproximações históricas de longo prazo para fundos
-            conservadores vs. ações globais diversificadas, não uma garantia). A faixa sombreada mostra um intervalo
-            otimista/conservador (±1,5 a ±4 pontos percentuais consoante o risco de cada saco) para lembrar que isto é um
-            cenário, não uma previsão. <b style={{ color: "var(--text)" }}>O PPR muda de contribuição aos 51 anos</b> (daqui a 13 anos): até lá,
-            145,83€/mês (1.750€/ano — 1.400€ do teu bolso + 350€ de reembolso de IRS reinvestido, dedução máxima da
-            faixa 35-50 anos); a partir dos 51, 125€/mês (1.500€/ano — 1.200€ próprio + 300€ de reembolso, dedução
-            máxima da faixa 51+). Não considera inflação, impostos sobre mais-valias, comissões, nem alterações às
-            contribuições ao longo dos 20 anos.
-          </div>
-        </div>
-      </div>
-
-      {/* ================= ATIVIDADE DE INVESTIMENTO ================= */}
-      <div style={{ padding: "0 26px 8px 26px" }}>
-        <div className="pd-eyebrow" style={{ marginBottom: 4 }}>Atividade de Investimento · 2026</div>
-        <div className="pd-title pd-display" style={{ fontSize: 20 }}>Registo, Relatório Mensal &amp; Ganhos-Perdas</div>
-        <div className="pd-card-hint" style={{ marginTop: 4, display: "block" }}>
-          Consolidado de 3 contas (EUR-51153667 · EUR-53984039 · USD-53877078) — atividade a partir de Janeiro de 2026
-        </div>
-      </div>
-
-      <div className="pd-summary-grid" style={{ margin: "16px 26px 0 26px", width: "auto", borderRadius: 12, overflow: "hidden" }}>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Total depositado</div>
-          <div className="pd-summary-value pd-mono">{fmtEUR(activityTotals.totalDep)}</div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>
-            Eu: {fmtEUR(activityTotals.euDep)} · Filhas: {fmtEUR(activityTotals.filhaDep)} · PPR: {fmtEUR(activityTotals.pprDep)}
-          </div>
-        </div>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Total investido (compras)</div>
-          <div className="pd-summary-value pd-mono">{fmtEUR(activityTotals.totalBuy)}</div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>Eu: {fmtEUR(activityTotals.euBuy)} · Filhas: {fmtEUR(activityTotals.filhaBuy)}</div>
-        </div>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Ganho/perda realizado (2026)</div>
-          <div className="pd-summary-value pd-mono" style={{ color: isPositive(activityTotals.totalPL) ? "var(--pos)" : "var(--neg)" }}>
-            {fmtEUR(activityTotals.totalPL, { signDisplay: "always" })}
-          </div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>só posições já fechadas</div>
-        </div>
-        <div className="pd-summary-cell">
-          <div className="pd-summary-label">Conta USD — compras</div>
-          <div className="pd-summary-value pd-mono">{fmtEUR(activityTotals.usdBuy)}</div>
-          <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>sem posições fechadas em USD</div>
-        </div>
-      </div>
-
-      <div style={{ margin: "20px 26px 0 26px", background: "var(--panel-alt)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 22px" }}>
-        <div style={{ fontSize: 13, color: "var(--text)" }}>
-          <b>Nota sobre a conta das filhas:</b> houve um movimento de €353,55 registado no extrato da corretora que não corresponde a
-          investimento real — foi tratado aqui como um depósito seguido de uma perda no mesmo valor, sem entrar no detalhe operação a operação.
-        </div>
-      </div>
-
-      <div className="pd-body">
-        {/* Left: monthly charts */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Depósitos por mês
-              <span className="pd-card-hint">Eu vs. Filhas vs. PPR</span>
-            </div>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <BarChart data={ACTIVITY_MONTHLY} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1A2132" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fill: "#8B96AC", fontSize: 11 }} axisLine={{ stroke: "#232C42" }} tickLine={false} />
-                  <YAxis tick={{ fill: "#8B96AC", fontSize: 10 }} axisLine={{ stroke: "#232C42" }} tickLine={false} width={40} />
-                  <Tooltip
-                    contentStyle={{ background: "#182036", border: "1px solid #232C42", borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: "#EAEEF6" }}
-                    formatter={(v, name) => [fmtEUR(v), name === "euDep" ? "Eu" : name === "filhaDep" ? "Filhas" : "PPR"]}
-                  />
-                  <Legend formatter={(v) => (v === "euDep" ? "Eu" : v === "filhaDep" ? "Filhas" : "PPR")} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="euDep" fill="#4EA8DE" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="filhaDep" fill="#E85D9E" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pprDep" fill="#8E6FD1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="pd-footnote">O MSCI World (EUNL.DE, €590,02) da conta das filhas não aparece aqui mês a mês — foi adquirido noutra plataforma, sem detalhe de datas disponível; entra só no total do resumo acima.</div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Compras por mês
-              <span className="pd-card-hint">Eu vs. Filhas (ações/ETF)</span>
-            </div>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <BarChart data={ACTIVITY_MONTHLY} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1A2132" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fill: "#8B96AC", fontSize: 11 }} axisLine={{ stroke: "#232C42" }} tickLine={false} />
-                  <YAxis tick={{ fill: "#8B96AC", fontSize: 10 }} axisLine={{ stroke: "#232C42" }} tickLine={false} width={40} />
-                  <Tooltip
-                    contentStyle={{ background: "#182036", border: "1px solid #232C42", borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: "#EAEEF6" }}
-                    formatter={(v, name) => [fmtEUR(v), name === "euBuy" ? "Eu" : "Filhas"]}
-                  />
-                  <Legend formatter={(v) => (v === "euBuy" ? "Eu" : "Filhas")} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="euBuy" fill="#4EA8DE" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="filhaBuy" fill="#E85D9E" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: asset P&L, owner P&L, dividends */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div className="pd-card">
-            <div className="pd-card-title">Ganho/perda por ativo</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 120, height: 120, flexShrink: 0 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={ACTIVITY_ASSET_PL} dataKey={(d) => Math.abs(d.pl)} nameKey="asset" innerRadius={34} outerRadius={58} paddingAngle={3} stroke="none">
-                      {ACTIVITY_ASSET_PL.map((a) => <Cell key={a.asset} fill={a.color} />)}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                {ACTIVITY_ASSET_PL.map((a) => (
-                  <div key={a.asset} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
-                    <span><span className="pd-dot" style={{ background: a.color }} />{a.asset}</span>
-                    <span className="pd-mono" style={{ color: isPositive(a.pl) ? "var(--pos)" : "var(--neg)" }}>{fmtEUR(a.pl, { signDisplay: "always" })}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="pd-footnote">Posições de investimento real fechadas em 2026 (exclui o ajuste de €353,55 na conta das filhas, tratado à parte).</div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Ganho/perda por titular
-              <span className="pd-card-hint">2026</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
-              <div style={{ background: "var(--panel-alt)", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>Eu <span style={{ color: "var(--muted)", fontWeight: 400 }}>(EUR-51153667)</span></div>
-                  <div style={{ fontSize: 10.5, color: "var(--muted)" }}>2 fechos, ambos NOS.PT</div>
-                </div>
-                <div className="pd-mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--neg)" }}>-6,93 €</div>
-              </div>
-              <div style={{ background: "var(--panel-alt)", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>Filhas <span style={{ color: "var(--muted)", fontWeight: 400 }}>(EUR-53984039)</span></div>
-                  <div style={{ fontSize: 10.5, color: "var(--muted)" }}>1 ajuste (depósito + perda), não é investimento</div>
-                </div>
-                <div className="pd-mono" style={{ fontSize: 16, fontWeight: 700, color: "var(--neg)" }}>-353,55 €</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">Dividendos &amp; taxas (2026)</div>
-            <table className="pd-table pd-mono">
-              <tbody>
-                <tr><td style={{ color: "var(--muted)" }}>Dividendos brutos</td><td style={{ color: "var(--pos)" }}>+7,79 €</td></tr>
-                <tr><td style={{ color: "var(--muted)" }}>Retenção na fonte</td><td style={{ color: "var(--neg)" }}>-2,09 €</td></tr>
-                <tr><td style={{ color: "var(--muted)" }}>Juros de saldo livre</td><td style={{ color: "var(--pos)" }}>+0,17 €</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Investimento por ano
-              <span className="pd-card-hint">todas as fontes</span>
-            </div>
-            <div style={{ width: "100%", height: 160 }}>
-              <ResponsiveContainer>
-                <BarChart data={YEARLY_INVESTED} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1A2132" vertical={false} />
-                  <XAxis dataKey="year" tick={{ fill: "#8B96AC", fontSize: 10.5 }} axisLine={{ stroke: "#232C42" }} tickLine={false} />
-                  <YAxis tick={{ fill: "#8B96AC", fontSize: 10 }} axisLine={{ stroke: "#232C42" }} tickLine={false} width={44} />
-                  <Tooltip
-                    contentStyle={{ background: "#182036", border: "1px solid #232C42", borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: "#EAEEF6" }}
-                    formatter={(v) => [fmtEUR(v), "Investido"]}
-                  />
-                  <Bar dataKey="amount" fill="#C9A24B" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="pd-footnote">2021-2023 sem dados (não há extratos dessa altura). O grande valor de 2020 é uma transferência de outro produto, não uma subscrição nova.</div>
-          </div>
-
-          <div className="pd-card">
-            <div className="pd-card-title">
-              Retorno anual do PPR
-              <span className="pd-card-hint">aproximado</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
-              {PPR_ANNUAL_RETURN.map((p) => (
-                <div key={p.year} style={{ background: "var(--panel-alt)", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600 }}>{p.year}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{p.from} → {p.to}</div>
-                  </div>
-                  <div className="pd-mono" style={{ fontSize: 16, fontWeight: 700, color: isPositive(p.pct) ? "var(--pos)" : "var(--neg)" }}>
-                    {p.pct > 0 ? "+" : ""}{p.pct.toFixed(2)}%
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="pd-footnote">Calculado a partir dos preços de subscrição mais próximos de cada fronteira de ano (não é a cotação exata a 31/12). 2021-2024 sem pontos de preço suficientes para calcular.</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Watchlist — itens fora da carteira */}
-      <div style={{ padding: "0 26px 8px 26px" }}>
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Watchlist
-            <span className="pd-card-hint">itens em análise, fora da carteira — não são recomendações de compra</span>
-          </div>
-          <table className="pd-table pd-mono">
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>Item</th>
-                <th>Perfil</th>
-                <th>Preço (jul/2026)</th>
-                <th style={{ textAlign: "left" }}>Tese resumida</th>
-              </tr>
-            </thead>
-            <tbody>
-              {WATCHLIST.map((w) => (
-                <tr key={w.ticker}>
-                  <td style={{ textAlign: "left", color: "var(--text)" }}>
-                    {w.ticker}
-                    <div style={{ color: "var(--muted)", fontSize: 10, fontFamily: "Inter, sans-serif" }}>{w.name}</div>
-                  </td>
-                  <td>{w.cat}</td>
-                  <td>{w.moeda === "USD" ? "$" : ""}{w.price.toFixed(2)}{w.moeda !== "USD" ? ` ${w.moeda}` : ""}</td>
-                  <td style={{ textAlign: "left", color: "var(--muted)", fontSize: 11, whiteSpace: "normal", maxWidth: 340 }}>{w.tese}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="pd-footnote">Regra dos 30 dias aplica-se a qualquer item aqui — nenhuma entrada por impulso. Histórico mensal completo (com mais meses) está no ficheiro Excel "registo_investimentos.xlsx", folha "Watchlist".</div>
-        </div>
-      </div>
-
-      {/* Full width closed positions table */}
-      <div style={{ padding: "0 26px 30px 26px" }}>
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Posições Fechadas — detalhe
-            <span className="pd-card-hint">{sortedActivityClosed.length} posições · clica no cabeçalho para ordenar</span>
-          </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <button className="pd-btn" style={{ borderColor: activityFilterTitular === null ? "var(--gold)" : "var(--border)" }} onClick={() => setActivityFilterTitular(null)}>Todas</button>
-            <button className="pd-btn" style={{ borderColor: activityFilterTitular === "Eu" ? "var(--gold)" : "var(--border)" }} onClick={() => setActivityFilterTitular("Eu")}>Eu</button>
-            <button className="pd-btn" style={{ borderColor: activityFilterTitular === "Filhas" ? "var(--gold)" : "var(--border)" }} onClick={() => setActivityFilterTitular("Filhas")}>Filhas</button>
-          </div>
-          <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
-            <table className="pd-table pd-mono">
-              <thead>
-                <tr>
-                  <th onClick={() => toggleActivitySort("instrumento")}><span className="pd-th-inner">Instrumento {activitySortKey === "instrumento" && (activitySortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th>Titular</th>
-                  <th onClick={() => toggleActivitySort("dataAbertura")}><span className="pd-th-inner">Abertura {activitySortKey === "dataAbertura" && (activitySortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleActivitySort("dataFecho")}><span className="pd-th-inner">Fecho {activitySortKey === "dataFecho" && (activitySortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleActivitySort("horasDetidas")}><span className="pd-th-inner">Detenção {activitySortKey === "horasDetidas" && (activitySortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                  <th onClick={() => toggleActivitySort("lucroPrejuizo")}><span className="pd-th-inner">Resultado {activitySortKey === "lucroPrejuizo" && (activitySortDir === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedActivityClosed.map((c, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--text)" }}>
-                      {c.instrumento}
-                      <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 999, border: "1px solid", color: c.categoria === "OUTRO" ? "var(--neg)" : "var(--blue)", borderColor: c.categoria === "OUTRO" ? "var(--neg)" : "var(--blue)" }}>{c.categoria}</span>
-                    </td>
-                    <td style={{ color: c.titular === "Filhas" ? "var(--pink)" : "var(--blue)" }}>{c.titular}</td>
-                    <td style={{ color: "var(--muted)" }}>{c.dataAbertura}</td>
-                    <td style={{ color: "var(--muted)" }}>{c.dataFecho}</td>
-                    <td style={{ color: "var(--muted)" }}>{c.horasDetidas == null ? "—" : fmtHoras(c.horasDetidas)}</td>
-                    <td style={{ color: isPositive(c.lucroPrejuizo) ? "var(--pos)" : "var(--neg)" }}>{fmtEUR(c.lucroPrejuizo, { signDisplay: "always" })}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="pd-footnote">
-            Dados extraídos dos extratos da corretora (Cash Operations + Closed Positions), 3 contas, Janeiro–Julho 2026.
-            Para editar os dados brutos, usa o ficheiro Excel "registo_investimentos.xlsx".
-          </div>
-        </div>
-      </div>
-      </>
-      )}
-
-      {activeTab === "dividendos" && (
-      <div style={{ padding: "26px" }}>
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Dividendos Recebidos
-            <span className="pd-card-hint">posições que já pagaram dividendos</span>
-          </div>
-          <div className="pd-summary-grid" style={{ margin: "12px 0", width: "auto", borderRadius: 10, overflow: "hidden" }}>
-            <div className="pd-summary-cell">
-              <div className="pd-summary-label">Total bruto recebido</div>
-              <div className="pd-summary-value pd-mono pos">{fmtEUR(totals.div)}</div>
-            </div>
-            <div className="pd-summary-cell">
-              <div className="pd-summary-label">Maior pagador</div>
-              <div className="pd-summary-value pd-mono">{[...positions].filter((p) => p.div > 0).sort((a, b) => b.div - a.div)[0]?.symbol || "—"}</div>
-            </div>
-            <div className="pd-summary-cell">
-              <div className="pd-summary-label">Posições com dividendo</div>
-              <div className="pd-summary-value pd-mono">{positions.filter((p) => p.div > 0).length}</div>
-            </div>
-          </div>
-          <table className="pd-table pd-mono">
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>Posição</th>
-                <th>Dividendo Bruto</th>
-                <th>% do Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...positions].filter((p) => p.div > 0).sort((a, b) => b.div - a.div).map((p) => (
-                <tr key={p.id}>
-                  <td style={{ textAlign: "left", color: "var(--text)" }}>{p.symbol}<div style={{ color: "var(--muted)", fontSize: 10, fontFamily: "Inter, sans-serif" }}>{p.name}</div></td>
-                  <td className="pos">{fmtEUR(p.div)}</td>
-                  <td>{totals.div > 0 ? ((p.div / totals.div) * 100).toFixed(1) : "0.0"}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="pd-footnote">Só reflete dividendos já registados nas posições atuais. Para o histórico completo por ano e retenção na fonte, consulta o ficheiro Excel "registo_investimentos.xlsx".</div>
-        </div>
-      </div>
-      )}
-
-      {activeTab === "fiscal" && (
-      <div style={{ padding: "26px" }}>
-        <div className="pd-card">
-          <div className="pd-card-title">
-            Resumo Fiscal
-            <span className="pd-card-hint">apoio à declaração de IRS — não é aconselhamento fiscal</span>
-          </div>
-          <div style={{ background: "var(--panel-alt)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: 12.5, color: "var(--text)" }}>
-            <b>Isto não é aconselhamento fiscal.</b> É um resumo dos dados que já temos, para te poupar trabalho — confirma sempre com um contabilista ou no Portal das Finanças antes de submeteres a declaração.
-          </div>
-          <div className="pd-summary-grid" style={{ margin: "0 0 16px 0", width: "auto", borderRadius: 10, overflow: "hidden" }}>
-            <div className="pd-summary-cell">
-              <div className="pd-summary-label">Dividendos brutos (rendimentos de capitais)</div>
-              <div className="pd-summary-value pd-mono">{fmtEUR(totals.div)}</div>
-              <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>normalmente Anexo J, categoria E</div>
-            </div>
-            <div className="pd-summary-cell">
-              <div className="pd-summary-label">Mais-valias realizadas (fechadas)</div>
-              <div className="pd-summary-value pd-mono neg">-€360,48</div>
-              <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>categoria G — Anexo G ou J</div>
-            </div>
-            <div className="pd-summary-cell">
-              <div className="pd-summary-label">Ganho não realizado (posições abertas)</div>
-              <div className="pd-summary-value pd-mono" style={{ color: isPositive(totals.gainAmt) ? "var(--pos)" : "var(--neg)" }}>{fmtEUR(totals.gainAmt, { signDisplay: "always" })}</div>
-              <div className="pd-summary-sub" style={{ color: "var(--muted)" }}>não declarável — só ao vender</div>
-            </div>
-          </div>
-          <div className="pd-footnote">
-            Detalhe completo (por ativo, por ano, com datas de aquisição/alienação) está na folha "Relatório Fiscal (IRS)" do ficheiro Excel "registo_investimentos.xlsx" — inclui avisos sobre dados em falta (ex: datas de aquisição desconhecidas).
-          </div>
-        </div>
-      </div>
-      )}
-    </div>
-  );
-}
