@@ -78,6 +78,10 @@
   .donut { width: 130px; height: 130px; border-radius: 50%; flex-shrink: 0; position: relative; }
   .donut::after { content: ''; position: absolute; inset: 19%; background: var(--panel); border-radius: 50%; }
 
+  .tabbar { display:flex; gap:4px; padding:0 26px; border-bottom:1px solid var(--border); overflow-x:auto; }
+  .tab-btn { background:none; border:none; border-bottom:2px solid transparent; color:var(--muted); cursor:pointer; padding:12px 16px; font-size:13px; font-family:inherit; white-space:nowrap; }
+  .tab-btn:hover { color:var(--text); }
+  .tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); font-weight:600; }
   table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   .tbl th {
     text-align: right; font-weight: 500; color: var(--muted); font-size: 10.5px; text-transform: uppercase;
@@ -297,14 +301,18 @@ const ACTIVITY_CLOSED = [
 ];
 
 const WATCHLIST = [
-  { name: "Oracle Corporation", ticker: "ORCL", cat: "C", moeda: "USD", price: 135.91, tese: "AI/cloud em forte crescimento, mas dívida elevada (~$124,7bn), FCF negativo, rating baixado para BBB-" },
-  { name: "S&P Global", ticker: "SPGI", cat: "A", moeda: "USD", price: 431.26, tese: "Oligopólio de ratings/índices, correção após guidance conservador, spin-off da Mobility concluído" },
-  { name: "iShares MSCI India ETF", ticker: "INDA / IIND.L", cat: "A (base)", moeda: "USD/GBP", price: 48.55, tese: "Exposição dedicada à Índia; rating Morningstar neutro, momentum técnico fraco" },
-  { name: "Alphabet (Google)", ticker: "GOOGL", cat: "A", moeda: "USD", price: 342.09, tese: "Q2 2026 forte (+24% receita, Cloud +82%), mas subiu ~89% em 12 meses; capex 2026 elevado ($195-205bn) penaliza no curto prazo; risco regulatório UE" },
-  { name: "Meliá Hotels International", ticker: "MEL.MC", cat: "C", moeda: "EUR", price: 7.98, tese: "Cadeia hoteleira espanhola, rating Buy dos analistas, mas dívida líquida elevada (~€2,19bn negativos); dados de preço inconsistentes entre fontes, confirmar antes de agir" },
-  { name: "Sezzle Inc.", ticker: "SEZL", cat: "C", moeda: "USD", price: 117.46, tese: "BNPL fintech; subiu +158% até jul/2026 (máx. $195,71), caiu -34% num dia (6-7 ago) após Q2 apesar de bater receita e subir guidance — clássico \"sell the news\"; muito volátil (beta 1,52)" },
-  { name: "Digital Turbine", ticker: "APPS", cat: "B", moeda: "USD", price: 13.31, tese: "Plataforma de distribuição de apps móveis, turnaround em curso; receita +27% (Q1 FY27), a vender ativos não-core (AdColony) para simplificar; consenso Strong Buy, alvo $15,17" },
-  { name: "CrowdStrike Holdings", ticker: "CRWD", cat: "A", moeda: "USD", price: 434.13, tese: "Adicionada 17-09-2026 (início regra 30 dias). Cibersegurança líder, tese de IA forte (Falcon Guardian, parceiro nº1 da Nvidia), mas +100% em 2026 e ~73% sobrevalorizada segundo modelo quantitativo — qualidade A, fora de zona de entrada" },
+  { name: "S&P Global", ticker: "SPGI", cat: "A", moeda: "USD", price: 402.73, tese: "Oligopólio de ratings/índices; ~27% abaixo do máximo de 52 sem. (552,25), alvo médio 520,56 USD; juros altos reduzem emissão de dívida (risco)" },
+  { name: "iShares MSCI India ETF", ticker: "INDA / IIND.L", cat: "A (base)", moeda: "USD/GBP", price: 45.56, tese: "Exposição dedicada à Índia; no mínimo das 52 sem. (45,21), −13,8% a 1 ano; petróleo caro e dólar forte penalizam a Índia" },
+  { name: "Alphabet (Google)", ticker: "GOOGL", cat: "A", moeda: "USD", price: 348.29, tese: "Q2 2026 forte (Cloud +82%); P/E forward 25,9, alvo médio 429,47 USD; resultados a 28-10; aumenta o peso tecnológico dos EUA" },
+  { name: "Meliá Hotels International", ticker: "MEL.MC", cat: "C", moeda: "EUR", price: 10.14, tese: "Cadeia hoteleira espanhola; P/E ~14x, dívida elevada; preço de 01-10 (confirmar antes de agir)" },
+  { name: "Sezzle Inc.", ticker: "SEZL", cat: "C", moeda: "USD", price: 117.22, tese: "BNPL fintech; máx. 195,71, caiu -34% num dia em agosto; 2 downgrades por valorização; resultados a 04-11; beta elevado" },
+  { name: "Digital Turbine", ticker: "APPS", cat: "B", moeda: "USD", price: 10.78, tese: "Turnaround; receita +27% (Q1 FY27); só 2 analistas; registou shelf de valores mobiliários (risco de diluição); resultados ~03-11" },
+  { name: "CrowdStrike Holdings", ticker: "CRWD", cat: "A", moeda: "USD", price: 263.01, tese: "Adicionada 17-09-2026 (30 dias → 17-10-2026). CORREÇÃO 09-10: o preço registado a 17-09 (434,13) estava errado — máx. 52 sem. é 286,99. Fwd P/E ≈186, P/S ≈50x, alvo médio (238,97) abaixo do preço: fora de zona de entrada" },
+  { name: "Repsol", ticker: "REP.MC", cat: "C", moeda: "EUR", price: 29.11, tese: "Adicionada 09-10-2026 (30 dias → 08-11-2026). Integrada petróleo/gás, exposição direta ao Brent; fwd P/E 5,9, dividendo 3,7%, lucro Q2 mais que triplicou; perto do máximo (31,64), alvo médio 29,86; risco: reabertura de Ormuz" },
+  { name: "iShares Core MSCI EM IMI UCITS ETF", ticker: "EIMI.L / EMIM", cat: "A (base)", moeda: "USD", price: 54.91, tese: "Adicionada 09-10-2026 (30 dias → 08-11-2026). Emergentes largos (~3.200 títulos, TER 0,18%, acumulação); China ~28-30%, Taiwan ~17-18%, Índia ~17-18%; atenção: tecnologia ~24-26% (TSMC ~11,6%) — diversifica geografia, não reduz tecnologia" },
+  { name: "Johnson & Johnson", ticker: "JNJ", cat: "B", moeda: "USD", price: 256.48, tese: "Adicionada 09-10-2026 (30 dias → 08-11-2026). Saúde defensiva; fwd P/E 23,4, dividendo 2,1%; ~9% abaixo do máximo; resultados 13-10; possível venda da DePuy Synthes à Apollo; risco: litígios de talco" },
+  { name: "Procter & Gamble", ticker: "PG", cat: "B", moeda: "USD", price: 150.59, tese: "Adicionada 09-10-2026 (30 dias → 08-11-2026). Consumo básico defensivo; fwd P/E 21,6, dividendo 2,9%; crescimento baixo, não é barata; resultados 22-10" },
+  { name: "BAE Systems", ticker: "BA.L", cat: "B", moeda: "GBP", price: 18.37, tese: "Adicionada 09-10-2026 (30 dias → 08-11-2026). Defesa/segurança; carteira recorde £83,6 mil M; ~18,6% abaixo do máximo, fwd P/E ≈20,4, dividendo ≈2,2%; preço (1.836,5p) A CONFIRMAR em fonte direta" },
 ];
 
 const YEARLY_INVESTED = [
@@ -393,40 +401,57 @@ function resolveAmbiguousId(placeholder, volume) {
   return placeholder;
 }
 
-function handleFileImport(fileInput, mode) {
-  mode = mode || "update";
-  const file = fileInput.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: "array" });
-      // tenta encontrar uma folha com cabeçalhos reconhecíveis; senão usa a primeira
-      let rows = null;
-      for (const sheetName of wb.SheetNames) {
-        const candidate = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true });
-        const flatText = candidate.slice(0, 5).map((r) => r.join(" ")).join(" ").toLowerCase();
-        if (flatText.includes("instrumento") || flatText.includes("preço atual") || flatText.includes("volume")) {
-          rows = candidate;
-          break;
+function readFileAsRows(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        // tenta encontrar uma folha com cabeçalhos reconhecíveis; senão usa a primeira
+        let rows = null;
+        for (const sheetName of wb.SheetNames) {
+          const candidate = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true });
+          const flatText = candidate.slice(0, 5).map((r) => r.join(" ")).join(" ").toLowerCase();
+          if (flatText.includes("instrumento") || flatText.includes("preço atual") || flatText.includes("volume")) {
+            rows = candidate;
+            break;
+          }
         }
+        if (!rows) rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true });
+        resolve(rows);
+      } catch (err) {
+        reject(err);
       }
-      if (!rows) rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true });
-      if (mode === "addOnly") importOnlyNewPositions(rows);
-      else importPositionsFromRows(rows);
+    };
+    reader.onerror = () => reject(new Error("erro de leitura"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function handleFileImport(fileInput, mode) {
+  mode = mode || "update";
+  const files = Array.from(fileInput.files || []);
+  if (!files.length) return;
+  const relatorios = [];
+  for (const file of files) {
+    try {
+      const rows = await readFileAsRows(file);
+      const msg = mode === "addOnly" ? importOnlyNewPositions(rows, true) : importPositionsFromRows(rows, true);
+      relatorios.push(`📄 ${file.name}\n${msg}`);
     } catch (err) {
-      alert("Não consegui ler este ficheiro. Confirma que é um .csv, .xlsx ou .xls válido.\n\nErro: " + err.message);
+      relatorios.push(`📄 ${file.name}\nNão consegui ler este ficheiro. Confirma que é um .csv, .xlsx ou .xls válido.\nErro: ${err.message}`);
     }
-  };
-  reader.readAsArrayBuffer(file);
+  }
   fileInput.value = "";
+  alert(relatorios.join("\n\n———\n\n"));
 }
 
 // Modo "adicionar só novidades" — nunca atualiza posições já existentes.
 // Qualquer linha cujo nome já corresponda a uma posição atual é ignorada;
 // só cria posições novas para nomes que ainda não conhecemos.
-function importOnlyNewPositions(rows) {
+function importOnlyNewPositions(rows, silent) {
+  const out = (msg) => { if (silent) return msg; alert(msg); };
   let headerRowIdx = -1, headerRow = null;
   for (let i = 0; i < Math.min(rows.length, 10); i++) {
     const rowText = (rows[i] || []).join(" ").toLowerCase();
@@ -436,8 +461,7 @@ function importOnlyNewPositions(rows) {
     }
   }
   if (headerRowIdx === -1) {
-    alert("Não encontrei um cabeçalho reconhecível. Verifica se exportaste a vista de posições da tua corretora.");
-    return;
+    return out("Não encontrei um cabeçalho reconhecível. Verifica se exportaste a vista de posições da tua corretora.");
   }
   const colName = 0;
   const colValor = findColIndex(headerRow, ["valor"]);
@@ -477,10 +501,11 @@ function importOnlyNewPositions(rows) {
   if (added) msg += `\n\n${criadas.join(", ")}`;
   msg += `\n\n${ignoradosExistentes} linhas ignoradas (já existiam na carteira).`;
   msg += `\n\nNota: as posições novas ficaram com categoria "Ações", titular "Eu" e perfil "Satélite" por omissão — revê e ajusta na tabela.`;
-  alert(msg);
+  return out(msg);
 }
 
-function importPositionsFromRows(rows) {
+function importPositionsFromRows(rows, silent) {
+  const out = (msg) => { if (silent) return msg; alert(msg); };
   // Formato 1: CSV simples gerado pelo script local (atualizar_precos.py) — id,symbol,price,dailyChangePct
   const firstRowLower = (rows[0] || []).map((c) => String(c || "").toLowerCase());
   if (firstRowLower.includes("id") && firstRowLower.includes("price")) {
@@ -506,8 +531,7 @@ function importPositionsFromRows(rows) {
     persist(); render();
     let msg = `Importação (preços ao vivo) concluída: ${updated} posições atualizadas.`;
     if (naoReconhecidos.length) msg += `\n\nNão reconhecidas: ${naoReconhecidos.join(", ")}`;
-    alert(msg);
-    return;
+    return out(msg);
   }
 
   // Formato 2: exportação da corretora (Instrumento/Posição, Valor, Volume, Preço atual, Lucro líquido %)
@@ -521,8 +545,7 @@ function importPositionsFromRows(rows) {
     }
   }
   if (headerRowIdx === -1) {
-    alert("Não encontrei um cabeçalho reconhecível (esperava colunas como 'Instrumento/Posição', 'Valor', 'Volume', 'Preço atual'). Verifica se exportaste a vista de posições abertas da tua corretora.");
-    return;
+    return out("Não encontrei um cabeçalho reconhecível (esperava colunas como 'Instrumento/Posição', 'Valor', 'Volume', 'Preço atual'). Verifica se exportaste a vista de posições abertas da tua corretora.");
   }
   const colName = 0; // primeira coluna é sempre o nome do instrumento neste formato
   const colValor = findColIndex(headerRow, ["valor"]);
@@ -559,7 +582,7 @@ function importPositionsFromRows(rows) {
   render();
   let msg = `Importação concluída: ${updated} posições atualizadas.`;
   if (naoReconhecidos.length) msg += `\n\nNão reconhecidas (verifica manualmente): ${naoReconhecidos.join(", ")}`;
-  alert(msg);
+  return out(msg);
 }
 
 async function refreshBtcPriceManually() {
@@ -579,10 +602,12 @@ let state = {
   assumedRates: { ppr: 4, filha: 7, eu: 7 },
   activitySortKey: "dataFecho", activitySortDir: "desc", activityFilterTitular: null,
   page: "dashboard",
+  tab: "geral",
   oneDriveUrl: "",
 };
 
 function setPage(p) { state.page = p; render(); }
+function setTab(t) { state.tab = t; state.page = "dashboard"; render(); }
 
 function loadPersisted() {
   // agora feito por loadFromFirestore(), chamado depois do login (ver onAuthStateChanged)
@@ -1057,6 +1082,26 @@ function render() {
   const proj = computeProjection();
   const bv = computeBucketValues();
 
+  // ---- separadores: movers, treemap, score ----
+  const movers = [...state.positions].filter(p => p.dailyPct !== 0).sort((a,b) => Math.abs(b.dailyPct)-Math.abs(a.dailyPct)).slice(0,5);
+  const treemapColor = g => g>=20?"#1F9D63":g>=5?"#2FD98A":g>=0?"#6FE3AE":g>=-10?"#FF9B9B":g>=-20?"#FF6B6B":"#B23A3A";
+  const tmData = state.positions.filter(p => p.value>0).map(p => ({ name:p.symbol, size:p.value, g:pctSafe(p.value,p.cost) })).sort((a,b)=>b.size-a.size);
+  const score = (() => {
+    const act = state.positions.filter(p => p.value>0);
+    const n = act.length || 1, tv = totals.value || 1;
+    const maxW = Math.max(...act.map(p => p.value/tv*100));
+    const concentracao = Math.max(0, Math.round(100 - maxW*2.2));
+    const diversificacao = Math.min(100, Math.round(new Set(act.map(p => p.category)).size/5*100));
+    const qualidade = Math.round(act.filter(p => p.role==="Base").reduce((s,p)=>s+p.value,0)/tv*100);
+    const roi = Math.max(0, Math.min(100, Math.round(50 + totals.gainPct*2.5)));
+    const emPerda = act.filter(p => pctSafe(p.value,p.cost)<0).length;
+    const drawdown = Math.max(0, Math.round(100 - emPerda/n*100));
+    const overall = Math.round((concentracao+diversificacao+qualidade+roi+drawdown)/5);
+    const tier = overall>=75 ? "A — Forte" : overall>=55 ? "B — Equilibrado" : "C — A Melhorar";
+    return { overall, tier, metrics:[["Concentração",concentracao],["Diversificação",diversificacao],["Qualidade (Base)",qualidade],["ROI",roi],["Drawdown",drawdown]] };
+  })();
+  const divList = [...state.positions].filter(p => (p.div||0)>0).sort((a,b)=>b.div-a.div);
+
   root.innerHTML = `
     <div class="marquee-wrap"><div class="marquee-track">${tickerItems}</div></div>
 
@@ -1073,6 +1118,11 @@ function render() {
       </div>
     </div>
 
+    <div class="tabbar">
+      ${[["geral","Visão Geral"],["carteira","Carteira"],["dividendos","Dividendos"],["fiscal","Fiscal"],["analise","Análise"]].map(t => `<button class="tab-btn ${state.tab===t[0]?'active':''}" onclick="setTab('${t[0]}')">${t[1]}</button>`).join("")}
+      <button class="tab-btn" onclick="setPage('documentos')">Documentos</button>
+    </div>
+    ${state.tab==="geral" ? `
     <div class="summary-grid">
       <div class="summary-cell">
         <div class="summary-label">Valor de mercado</div>
@@ -1096,6 +1146,47 @@ function render() {
       </div>
     </div>
 
+
+    <div style="padding:20px 26px 0 26px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+      <div class="card">
+        <div class="card-title">Portfolio Score<span class="card-hint">${score.tier}</span></div>
+        <div style="display:flex;align-items:center;gap:18px">
+          <div style="width:80px;height:80px;border-radius:50%;flex-shrink:0;background:conic-gradient(${score.overall>=75?"#2FD98A":score.overall>=55?"#C9A24B":"#FF6B6B"} ${score.overall*3.6}deg, var(--panel-alt) 0deg);display:flex;align-items:center;justify-content:center">
+            <div style="width:62px;height:62px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;flex-direction:column">
+              <div class="mono" style="font-size:20px;font-weight:700">${score.overall}</div><div style="font-size:8px;color:var(--muted)">/100</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+            ${score.metrics.map(m => `<div>
+              <div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:2px"><span style="color:var(--muted)">${m[0]}</span><span class="mono">${m[1]}</span></div>
+              <div style="height:4px;background:var(--panel-alt);border-radius:2px;overflow:hidden"><div style="width:${m[1]}%;height:100%;background:${m[1]>=60?'var(--pos)':m[1]>=35?'var(--gold)':'var(--neg)'};border-radius:2px"></div></div>
+            </div>`).join("")}
+          </div>
+        </div>
+        <div class="footnote">Cálculo próprio (concentração, diversificação por classe, peso em Base, ROI, % de posições em perda).</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Principais Movers<span class="card-hint">maior variação diária</span></div>
+        ${movers.length===0 ? `<div style="font-size:12px;color:var(--muted);padding:20px 0">Sem dados de variação diária disponíveis.</div>` : `<div style="display:flex;flex-direction:column;gap:8px">${movers.map(p => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--panel-alt);border-radius:8px">
+            <div><span class="mono" style="font-weight:700;font-size:12.5px">${p.symbol}</span> <span style="font-size:10.5px;color:var(--muted)">${p.name}</span></div>
+            <div><span class="mono" style="font-size:11px;color:var(--muted)">${fmtEUR(p.dailyAmt,"always")}</span> <span class="mono" style="font-size:12.5px;font-weight:700;color:${isPos(p.dailyPct)?'var(--pos)':'var(--neg)'}">${fmtPct(p.dailyPct)}</span></div>
+          </div>`).join("")}</div>`}
+      </div>
+    </div>
+
+    <div style="padding:20px 26px 0 26px">
+      <div class="card">
+        <div class="card-title">Peso vs Retorno<span class="card-hint">tamanho = peso na carteira · cor = ganho/perda</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;min-height:220px">
+          ${tmData.map(d => `<div title="${d.name}: ${fmtEUR(d.size)} (${d.g>0?'+':''}${d.g.toFixed(2)}%)" style="flex-grow:${d.size};flex-basis:${Math.max(60,Math.sqrt(d.size)*8)}px;height:90px;background:${treemapColor(d.g)};border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span class="mono" style="font-size:11px;font-weight:700;color:#0A0E1A">${d.name}</span><span class="mono" style="font-size:10px;color:#0A0E1A">${d.g>0?'+':''}${d.g.toFixed(0)}%</span></div>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    ` : ""}
+    ${state.tab==="carteira" ? `
     <div class="body">
       <div style="grid-column:1/2">
         <div class="card">
@@ -1103,8 +1194,8 @@ function render() {
             <div class="card-title" style="margin-bottom:0">Posições<span class="card-hint">clica no valor de mercado para editar</span></div>
             <div style="display:flex;align-items:center;gap:10px">
               <span id="save-flash" class="save-flash" style="display:none">💾 guardado</span>
-              <label class="btn" style="cursor:pointer">📂 Importar extrato (CSV/Excel)<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileImport(this)"></label>
-              <label class="btn" style="cursor:pointer">➕ Adicionar só novidades<input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileImport(this, 'addOnly')"></label>
+              <label class="btn" style="cursor:pointer">📂 Importar extrato (CSV/Excel)<input type="file" accept=".csv,.xlsx,.xls" multiple style="display:none" onchange="handleFileImport(this)"></label>
+              <label class="btn" style="cursor:pointer">➕ Adicionar só novidades<input type="file" accept=".csv,.xlsx,.xls" multiple style="display:none" onchange="handleFileImport(this, 'addOnly')"></label>
               <button id="btc-refresh-btn" class="btn" onclick="refreshBtcPriceManually()">↻ Atualizar BTC</button>
               <button class="btn" onclick="resetAll()">↺ repor</button>
             </div>
@@ -1125,7 +1216,7 @@ function render() {
             </table>
           </div>
 
-          <div class="footnote">Edita o "Valor" de qualquer posição para simular uma atualização de preço — os totais e gráficos recalculam automaticamente. Os valores ficam guardados neste browser. O botão "Importar extrato" atualiza posições já existentes; o botão "Adicionar só novidades" faz o oposto — nunca toca no que já tens, só cria posições novas a partir de linhas cujo nome não reconhece. PDF ainda não é suportado (formatos variam demasiado entre corretoras) — converte para Excel/CSV primeiro, ou cola os valores manualmente.</div>
+          <div class="footnote">Edita o "Valor" de qualquer posição para simular uma atualização de preço — os totais e gráficos recalculam automaticamente. Os valores ficam guardados neste browser. O botão "Importar extrato" atualiza posições já existentes; o botão "Adicionar só novidades" faz o oposto — nunca toca no que já tens, só cria posições novas a partir de linhas cujo nome não reconhece. Podes selecionar vários ficheiros de uma vez (ex.: um por conta/corretora) — são processados um a um e no final aparece um resumo com o resultado de cada ficheiro. PDF ainda não é suportado (formatos variam demasiado entre corretoras) — converte para Excel/CSV primeiro, ou cola os valores manualmente.</div>
 
           <div class="formula-box">
             <b>Como o "Sinal" é calculado</b> — soma de 3 critérios que tu controlas: desempenho não realizado (+2 a −2), a tua <b>Convicção</b> (Alta +2 / Média 0 / Baixa −2), e −1 se a posição pesar 8%+ da carteira. Soma ≥ 2 → <b style="color:#2FD98A">Reforçar</b>; soma ≤ −2 → <b style="color:#FF6B6B">Rever/Vender</b>; caso contrário → <b style="color:#E8B84B">Manter</b>. Não é aconselhamento financeiro.
@@ -1159,6 +1250,45 @@ function render() {
       </div>
     </div>
 
+    ` : ""}
+    ${state.tab==="dividendos" ? `
+
+    <div class="full-width-section">
+      <div class="card">
+        <div class="card-title">Dividendos Recebidos<span class="card-hint">posições que já pagaram dividendos</span></div>
+        <div class="summary-grid" style="margin:12px 0;border-radius:10px;overflow:hidden">
+          <div class="summary-cell"><div class="summary-label">Total bruto recebido</div><div class="summary-value mono" style="color:var(--pos)">${fmtEUR(totals.div)}</div></div>
+          <div class="summary-cell"><div class="summary-label">Maior pagador</div><div class="summary-value mono">${divList[0] ? divList[0].symbol : "—"}</div></div>
+          <div class="summary-cell"><div class="summary-label">Posições com dividendo</div><div class="summary-value mono">${divList.length}</div></div>
+        </div>
+        <table class="tbl mono">
+          <thead><tr><th style="text-align:left">Posição</th><th>Dividendo Bruto</th><th>% do Total</th></tr></thead>
+          <tbody>${divList.map(p => `<tr><td style="text-align:left;color:var(--text)">${p.symbol}<div style="color:var(--muted);font-size:10px">${p.name}</div></td><td style="color:var(--pos)">${fmtEUR(p.div)}</td><td>${totals.div>0?(p.div/totals.div*100).toFixed(1):"0.0"}%</td></tr>`).join("")}</tbody>
+        </table>
+        <div class="footnote">Só reflete dividendos já registados nas posições atuais. Histórico por ano e retenção na fonte: ficheiro Excel "registo_investimentos.xlsx".</div>
+      </div>
+    </div>
+
+    ` : ""}
+    ${state.tab==="fiscal" ? `
+
+    <div class="full-width-section">
+      <div class="card">
+        <div class="card-title">Resumo Fiscal<span class="card-hint">apoio à declaração de IRS — não é aconselhamento fiscal</span></div>
+        <div style="background:var(--panel-alt);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:12.5px;color:var(--text)">
+          <b>Isto não é aconselhamento fiscal.</b> É um resumo dos dados registados — confirme sempre com um contabilista ou no Portal das Finanças antes de submeter a declaração.
+        </div>
+        <div class="summary-grid" style="margin:0 0 16px 0;border-radius:10px;overflow:hidden">
+          <div class="summary-cell"><div class="summary-label">Dividendos brutos (rendimentos de capitais)</div><div class="summary-value mono">${fmtEUR(totals.div)}</div><div class="summary-sub" style="color:var(--muted)">normalmente Anexo J, categoria E</div></div>
+          <div class="summary-cell"><div class="summary-label">Mais-valias realizadas (fechadas)</div><div class="summary-value mono" style="color:var(--neg)">${fmtEUR(actTotals.totalPL,"always")}</div><div class="summary-sub" style="color:var(--muted)">categoria G — Anexo G ou J</div></div>
+          <div class="summary-cell"><div class="summary-label">Ganho não realizado (posições abertas)</div><div class="summary-value mono" style="color:${isPos(totals.gainAmt)?'var(--pos)':'var(--neg)'}">${fmtEUR(totals.gainAmt,"always")}</div><div class="summary-sub" style="color:var(--muted)">não declarável — só ao vender</div></div>
+        </div>
+        <div class="footnote">Detalhe completo (por ativo, por ano, com datas de aquisição/alienação) na folha "Relatório Fiscal (IRS)" do ficheiro Excel "registo_investimentos.xlsx".</div>
+      </div>
+    </div>
+
+    ` : ""}
+    ${state.tab==="analise" ? `
     <div class="full-width-section">
       <div class="card">
         <div class="card-title">Projeção a 20 anos<span class="card-hint">cenário ilustrativo — não é uma promessa de retorno</span></div>
@@ -1339,6 +1469,7 @@ function render() {
         <div class="footnote">Dados dos extratos da corretora, Janeiro–Julho 2026. Para o detalhe bruto, usa o ficheiro Excel "registo_investimentos.xlsx".</div>
       </div>
     </div>
+    ` : ""}
   `;
 }
 
